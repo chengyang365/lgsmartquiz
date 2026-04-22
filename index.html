@@ -104,7 +104,7 @@
                                     <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                         <i class="fas fa-id-card text-gray-400"></i>
                                     </div>
-                                    <input type="text" id="reg-student-id" required placeholder="输入学号 (如: 1001)" class="w-full pl-10 pr-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors">
+                                    <input type="text" id="reg-student-id" required placeholder="输入学号 (如: 27001)" class="w-full pl-10 pr-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors">
                                 </div>
                                 <button type="button" id="btn-verify-id" class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-6 py-3 rounded-lg transition-colors shadow-sm whitespace-nowrap">
                                     <i class="fas fa-search mr-1"></i> <span class="lang-zh">验证</span><span class="lang-ms">Sahkan</span>
@@ -421,14 +421,14 @@
                 dot.classList.add('translate-x-5');
                 zhLabel.classList.replace('text-white', 'text-blue-200');
                 msLabel.classList.replace('text-blue-200', 'text-white');
-                document.getElementById('reg-student-id').placeholder = "Masukkan ID (Cth: 1001)";
+                document.getElementById('reg-student-id').placeholder = "Masukkan ID (Cth: 27001)";
             } else {
                 body.classList.remove('lang-ms');
                 toggle.classList.replace('bg-indigo-400', 'bg-blue-400');
                 dot.classList.remove('translate-x-5');
                 zhLabel.classList.replace('text-blue-200', 'text-white');
                 msLabel.classList.replace('text-white', 'text-blue-200');
-                document.getElementById('reg-student-id').placeholder = "输入学号 (如: 1001)";
+                document.getElementById('reg-student-id').placeholder = "输入学号 (如: 27001)";
             }
             updateDynamicText();
         });
@@ -567,7 +567,7 @@
 
         // ================= API & Mock Data =================
         const mockData = {
-            students: { "1001": { name: "王小明", className: "6A" }, "1002": { name: "李小华", className: "6B" } },
+            students: { "27001": { name: "王小明", className: "6A" }, "1002": { name: "李小华", className: "6B" } },
             competitions: [
                 { id: "C001", name: "2026年全柔华小常识比赛", startTime: Date.now() - 100000, endTime: Date.now() + 86400000, allowReview: true, allowCert: true, allowRanking: true, allowScore: true },
                 { id: "C002", name: "[测试] 闭卷赛(无回顾/奖状/排名/分数)", startTime: null, endTime: null, allowReview: false, allowCert: false, allowRanking: false, allowScore: false },
