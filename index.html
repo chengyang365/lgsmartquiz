@@ -415,7 +415,7 @@
 
     <!-- 系统逻辑脚本 -->
     <script>
-        const GAS_URL = "https://script.google.com/macros/s/AKfycbxjM0IirZjAAQ3kPUrRRPqwWVS14f3PNb7p3ep0bgmUWFFNUi9oiPznBno2mfJ8EBoP/exec"; 
+        const GAS_URL = ""; 
 
         const state = {
             adminPassword: "8888", 
@@ -604,9 +604,15 @@
         }
 
         function shuffleOptions(question) {
-            let optObjs = question.options.map((opt, i) => ({ text: opt, isCorrect: i === question.answerIndex }));
+            let optObjs = question.options.map((opt, i) => ({ 
+                text: opt, 
+                trans: (question.optionsTranslation && question.optionsTranslation[i]) ? question.optionsTranslation[i] : "",
+                isCorrect: i === question.answerIndex 
+            }));
             optObjs.sort(() => Math.random() - 0.5);
             question.options = optObjs.map(o => o.text);
+            // 新增：让翻译文本跟着选项一起打乱
+            question.optionsTranslation = optObjs.map(o => o.trans);
             question.answerIndex = optObjs.findIndex(o => o.isCorrect);
             return question;
         }
@@ -619,8 +625,8 @@
                 { id: "C002", name: "[测试] 多次作答赛(Multiple)", startTime: null, endTime: null, allowReview: true, allowCert: true, allowRanking: true, allowScore: true, timeLimit: 5, themeColor: "green", allowTranslation: false, allowMultiple: true }
             ],
             questions: [
-                { id: "Q1", text: "以下哪个是柔佛州的州旗？", translation: "Antara berikut, yang manakah merupakan bendera negeri Johor?", options: ["选项A", "选项B", "选项C", "选项D"], answerIndex: 0, imageUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5a/Flag_of_Johor.svg/800px-Flag_of_Johor.svg.png" },
-                { id: "Q2", text: "马来西亚现任最高元首来自哪个州属？", translation: "Yang di-Pertuan Agong Malaysia kini berasal dari negeri mana?", options: ["柔佛州", "彭亨州", "雪兰莪州", "霹雳州"], answerIndex: 0 },
+                { id: "Q1", text: "以下哪个是柔佛州的州旗？", translation: "Antara berikut, yang manakah merupakan bendera negeri Johor?", options: ["选项A", "选项B", "选项C", "选项D"], optionsTranslation: ["Pilihan A", "Pilihan B", "Pilihan C", "Pilihan D"], answerIndex: 0, imageUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5a/Flag_of_Johor.svg/800px-Flag_of_Johor.svg.png" },
+                { id: "Q2", text: "马来西亚现任最高元首来自哪个州属？", translation: "Yang di-Pertuan Agong Malaysia kini berasal dari negeri mana?", options: ["柔佛州", "彭亨州", "雪兰莪州", "霹雳州"], optionsTranslation: ["Johor", "Pahang", "Selangor", "Perak"], answerIndex: 0 },
                 { id: "Q3", text: "太阳系中体积最大的行星是？", options: ["地球", "火星", "木星", "土星"], answerIndex: 2 } 
             ],
             leaderboard: [ { rank: 1, name: "陈测试", school: "SJK (C) Ladang Grisek", score: 95, time: "00:45" } ]
@@ -854,17 +860,31 @@
             btnTranslate.classList.remove('bg-primary-50', 'text-primary-600', 'border-primary-400');
             btnTranslate.classList.add('text-gray-400', 'border-gray-200');
 
-            if (q.translation && state.currentCompetition.allowTranslation !== false) {
+            // 判断：只要题目或选项有翻译，就显示翻译按钮
+            const hasTranslation = q.translation || (q.optionsTranslation && q.optionsTranslation.some(t => t !== ""));
+
+            if (hasTranslation && state.currentCompetition.allowTranslation !== false) {
                 btnTranslate.classList.remove('hidden');
-                translationText.innerText = q.translation;
+                
+                if (q.translation) {
+                    translationText.innerText = q.translation;
+                    translationText.classList.add('hidden'); // 默认隐藏
+                } else {
+                    translationText.innerText = '';
+                }
                 
                 btnTranslate.onclick = () => {
-                    translationText.classList.toggle('hidden');
+                    if (q.translation) translationText.classList.toggle('hidden');
                     btnTranslate.classList.toggle('text-primary-600');
                     btnTranslate.classList.toggle('text-gray-400');
                     btnTranslate.classList.toggle('bg-primary-50');
                     btnTranslate.classList.toggle('border-primary-400');
                     btnTranslate.classList.toggle('border-gray-200');
+
+                    // 切换所有选项翻译的显示状态
+                    document.querySelectorAll('.option-trans-text').forEach(el => {
+                        el.classList.toggle('hidden');
+                    });
                 };
             } else {
                 btnTranslate.classList.add('hidden'); translationText.innerText = '';
@@ -917,7 +937,16 @@
                 
                 let optContentClass = isEliminated ? "line-through text-gray-400 dynamic-text" : "dynamic-text";
                 let labelBg = isSelected ? "bg-white/20 text-white" : "bg-gray-100 text-gray-600";
-                optBtn.innerHTML = `<span class="flex-shrink-0 inline-flex items-center justify-center w-8 h-8 rounded-full ${labelBg} font-bold text-sm">${labels[index]}</span> <span class="${optContentClass}">${optText}</span>`;
+                
+                // 新增：构建包含翻译的选项 HTML
+                const optTransText = (q.optionsTranslation && q.optionsTranslation[index]) ? q.optionsTranslation[index] : "";
+                let optHtml = `<span class="${optContentClass} block">${optText}</span>`;
+                if (optTransText) {
+                    optHtml += `<span class="option-trans-text hidden text-sm italic opacity-75 mt-0.5 block font-normal leading-tight">${optTransText}</span>`;
+                }
+
+                // 修改排版，让选项和翻译垂直排列
+                optBtn.innerHTML = `<span class="flex-shrink-0 inline-flex items-center justify-center w-8 h-8 rounded-full ${labelBg} font-bold text-sm mt-0.5">${labels[index]}</span> <div class="flex flex-col items-start">${optHtml}</div>`;
                 
                 const elimBtn = document.createElement('button');
                 elimBtn.title = "点击排除此项 / Buang pilihan";
