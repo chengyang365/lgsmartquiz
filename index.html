@@ -50,11 +50,11 @@
     <!-- 进入系统前的引导全屏大门 -->
     <div id="fullscreen-overlay" class="fixed inset-0 z-[300] bg-primary-700 flex flex-col items-center justify-center text-white">
         <i class="fas fa-expand text-7xl mb-8 text-primary-400 animate-pulse"></i>
-        <h1 class="text-3xl md:text-4xl font-bold mb-4 tracking-wider text-center px-4">新廊华小智能问答系统</h1>
-        <p class="text-white/80 mb-12 text-center">系统必须在全屏模式下运行。<br>Sistem mesti dijalankan dalam Mod Skrin Penuh.</p>
-        <button id="btn-enter-fullscreen" class="bg-green-500 hover:bg-green-600 text-white font-bold py-4 px-10 rounded-full shadow-2xl text-xl transition-transform transform hover:scale-105 border-4 border-green-400 flex items-center flex-col">
-            <span class="mb-1"><i class="fas fa-sign-in-alt mr-2"></i>进入系统</span>
-            <span class="text-sm font-normal opacity-90">Masuk ke Sistem</span>
+        <h1 class="text-3xl md:text-5xl font-extrabold mb-4 tracking-wider text-center px-4 drop-shadow-lg">新廊华小智能问答系统</h1>
+        <p class="text-white/80 mb-12 text-center text-lg font-medium tracking-wide">系统必须在全屏模式下运行。<br><span class="font-normal opacity-75">Sistem mesti dijalankan dalam Mod Skrin Penuh.</span></p>
+        <button id="btn-enter-fullscreen" disabled class="bg-white/30 text-white font-bold py-4 px-12 rounded-full shadow-lg text-xl flex items-center flex-col cursor-wait backdrop-blur-sm transition-all duration-300">
+            <span class="mb-1 flex items-center"><i class="fas fa-circle-notch fa-spin mr-2"></i>系统连接中...</span>
+            <span class="text-sm font-normal opacity-90">Sedang menyambung...</span>
         </button>
     </div>
 
@@ -663,8 +663,28 @@
         window.onload = async () => {
             applyTheme('blue');
             const res = await apiCall('getCompetitions');
-            if (res.success) { state.competitions = res.data; showView('register'); } 
-            else { showModal("错误 / Ralat", "获取比赛失败，请刷新重试", "error"); }
+            
+            const btnEnter = document.getElementById('btn-enter-fullscreen');
+            
+            if (res.success) { 
+                state.competitions = res.data; 
+                showView('register'); 
+                
+                // 数据加载完毕后，激活“进入系统”按钮
+                btnEnter.disabled = false;
+                btnEnter.className = "bg-white text-primary-700 hover:bg-primary-50 hover:text-primary-800 font-bold py-4 px-12 rounded-full shadow-[0_10px_25px_rgba(0,0,0,0.3)] text-xl transition-all duration-300 transform hover:-translate-y-1 hover:shadow-[0_15px_35px_rgba(0,0,0,0.4)] flex items-center flex-col group cursor-pointer";
+                btnEnter.innerHTML = `
+                    <span class="mb-1 flex items-center"><i class="fas fa-sign-in-alt mr-2 group-hover:translate-x-1 transition-transform"></i>进入系统</span>
+                    <span class="text-sm font-normal opacity-70">Masuk ke Sistem</span>
+                `;
+            } 
+            else { 
+                showModal("错误 / Ralat", "获取比赛数据失败，请刷新网页重试", "error"); 
+                btnEnter.innerHTML = `
+                    <span class="mb-1 flex items-center"><i class="fas fa-times-circle mr-2"></i>连接失败，请刷新</span>
+                    <span class="text-sm font-normal opacity-70">Sila muat semula halaman</span>
+                `;
+            }
         };
 
         document.getElementById('reg-student-id').addEventListener('keydown', (e) => {
