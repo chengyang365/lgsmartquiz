@@ -1,0 +1,265 @@
+/**
+ * 新廊华小智能问答赛系统 - Google Apps Script (全功能终极版)
+ */
+
+const SPREADSHEET_ID = ""; // 留空则使用当前绑定表格
+
+// ================= 新增：教师专用 - 顶部菜单 =================
+function onOpen() {
+  var ui = SpreadsheetApp.getUi();
+  ui.createMenu('🛠️ 智能问答赛管理')
+      .addItem('📊 自动生成错题分析报表', 'generateErrorReport')
+      .addToUi();
+}
+
+function getSpreadsheet() {
+  return SPREADSHEET_ID ? SpreadsheetApp.openById(SPREADSHEET_ID) : SpreadsheetApp.getActiveSpreadsheet();
+}
+
+function doGet(e) {
+  const action = e.parameter.action;
+  let responseData = { success: false, message: "Unknown action" };
+  
+  try {
+    if (action === 'getCompetitions') responseData = { success: true, data: getActiveCompetitions() };
+    else if (action === 'verifyStudent') responseData = verifyStudent(e.parameter.id);
+    else if (action === 'getQuestions') responseData = { success: true, data: getQuestions(e.parameter.comp) };
+    else if (action === 'getLeaderboard') responseData = { success: true, data: getLeaderboard(e.parameter.comp) };
+  } catch (err) { responseData = { success: false, error: err.toString() }; }
+  
+  return ContentService.createTextOutput(JSON.stringify(responseData)).setMimeType(ContentService.MimeType.JSON);
+}
+
+function doPost(e) {
+  try {
+    const payload = JSON.parse(e.postData.contents);
+    const userInfo = payload.userInfo;
+    const score = payload.score;
+    const timeTaken = payload.timeTaken;
+    
+    const ss = getSpreadsheet();
+    let sheet = ss.getSheetByName("Submissions");
+    
+    if (!sheet) {
+      sheet = ss.insertSheet("Submissions");
+      sheet.appendRow(["时间戳", "比赛ID", "比赛名称", "学号", "姓名", "学校", "班级", "分数", "用时(秒)", "用时(MM:SS)", "作答记录"]);
+    }
+    
+    // 防重复提交检查
+    const data = sheet.getDataRange().getValues();
+    for(let i = 1; i < data.length; i++) {
+      if(data[i][1].toString() === userInfo.compId && data[i][3].toString() === userInfo.studentId.toString()) {
+        return ContentService.createTextOutput(JSON.stringify({ success: false, error: "Duplicate" }))
+            .setMimeType(ContentService.MimeType.JSON);
+      }
+    }
+    
+    const formattedTime = Math.floor(timeTaken / 60).toString().padStart(2, '0') + ":" + (timeTaken % 60).toString().padStart(2, '0');
+    
+    sheet.appendRow([
+      new Date(),
+      userInfo.compId,
+      userInfo.competition,
+      userInfo.studentId,
+      userInfo.name,
+      userInfo.school,
+      userInfo.className,
+      score,
+      timeTaken,
+      formattedTime,
+      JSON.stringify(payload.details) // 关键：第11列(index 10)保存学生每一题选了什么
+    ]);
+    
+    const leaderboard = getLeaderboard(userInfo.compId);
+    let rank = leaderboard.findIndex(item => item.studentId === userInfo.studentId) + 1;
+    
+    return ContentService.createTextOutput(JSON.stringify({ success: true, rank: rank }))
+      .setMimeType(ContentService.MimeType.JSON);
+      
+  } catch (err) {
+    return ContentService.createTextOutput(JSON.stringify({ success: false, error: err.toString() })).setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+function doOptions(e) {
+  return ContentService.createTextOutput("").setMimeType(ContentService.MimeType.TEXT);
+}
+
+// ================= Helpers =================
+
+function getActiveCompetitions() {
+  const sheet = getSpreadsheet().getSheetByName("Settings");
+  if (!sheet) return [];
+  const data = sheet.getDataRange().getValues();
+  const comps = [];
+  
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][2] === "Active") {
+      let start = data[i][3] ? new Date(data[i][3]).getTime() : null;
+      let end = data[i][4] ? new Date(data[i][4]).getTime() : null;
+      
+      let allowReview = data[i][5] !== undefined && data[i][5].toString().trim().toUpperCase() === "NO" ? false : true;
+      let allowCert = data[i][6] !== undefined && data[i][6].toString().trim().toUpperCase() === "NO" ? false : true;
+      let allowRanking = data[i][7] !== undefined && data[i][7].toString().trim().toUpperCase() === "NO" ? false : true;
+      let allowScore = data[i][8] !== undefined && data[i][8].toString().trim().toUpperCase() === "NO" ? false : true;
+      
+      comps.push({ 
+        id: data[i][0].toString(), name: data[i][1].toString(),
+        startTime: start, endTime: end,
+        allowReview: allowReview, allowCert: allowCert, allowRanking: allowRanking, allowScore: allowScore
+      });
+    }
+  }
+  return comps;
+}
+
+function verifyStudent(studentId) {
+  const sheet = getSpreadsheet().getSheetByName("Students");
+  if (!sheet) return { success: false, error: "系统未找到 Students 数据表" };
+  
+  const data = sheet.getDataRange().getValues();
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][0].toString() === studentId.toString()) {
+      return { success: true, data: { name: data[i][1].toString(), className: data[i][2].toString() } };
+    }
+  }
+  return { success: false, error: "查无此学号" };
+}
+
+function getQuestions(compId) {
+  const sheet = getSpreadsheet().getSheetByName("Questions");
+  if (!sheet) return [];
+  const data = sheet.getDataRange().getValues();
+  const questions = [];
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][0].toString() === compId) {
+      questions.push({
+        id: "Q" + i, text: data[i][1],
+        options: [data[i][2], data[i][3], data[i][4], data[i][5]],
+        answerIndex: parseInt(data[i][6]),
+        imageUrl: data[i][7] ? data[i][7].toString().trim() : "" // 新增：读取第H列(第8列)作为图片链接
+      });
+    }
+  }
+  return questions;
+}
+
+function getLeaderboard(compId) {
+  const sheet = getSpreadsheet().getSheetByName("Submissions");
+  if (!sheet) return [];
+  const data = sheet.getDataRange().getValues();
+  let submissions = [];
+  
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][1].toString() === compId) {
+      submissions.push({
+        studentId: data[i][3].toString(), name: data[i][4], school: data[i][5],
+        score: parseFloat(data[i][7]), timeSeconds: parseFloat(data[i][8]), time: data[i][9]
+      });
+    }
+  }
+  
+  submissions.sort((a, b) => b.score - a.score || a.timeSeconds - b.timeSeconds);
+  
+  return submissions.slice(0, 100).map((item, index) => ({
+    rank: index + 1, studentId: item.studentId, name: item.name,
+    school: item.school, score: item.score, time: item.time
+  }));
+}
+
+// ================= 新增：错题分析报表生成引擎 =================
+function generateErrorReport() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var ui = SpreadsheetApp.getUi();
+
+  var response = ui.prompt('生成错题分析报表', '请输入需要分析的【比赛ID】(例如: C001):', ui.ButtonSet.OK_CANCEL);
+  if (response.getSelectedButton() !== ui.Button.OK) return;
+  var compId = response.getResponseText().trim();
+  if (!compId) return;
+
+  // 1. 获取题目
+  var qSheet = ss.getSheetByName("Questions");
+  if (!qSheet) { ui.alert("错误", "找不到 Questions 表格！", ui.ButtonSet.OK); return; }
+  var qData = qSheet.getDataRange().getValues();
+  var questions = [];
+  for (var i = 1; i < qData.length; i++) {
+    if (qData[i][0].toString() === compId) {
+      questions.push({
+        text: qData[i][1],
+        answerIndex: parseInt(qData[i][6]) // 0=A, 1=B, 2=C, 3=D
+      });
+    }
+  }
+  if (questions.length === 0) { ui.alert("提示", "未找到该比赛的题目数据，请检查比赛ID是否正确！", ui.ButtonSet.OK); return; }
+
+  // 2. 获取答题记录
+  var sSheet = ss.getSheetByName("Submissions");
+  if (!sSheet) { ui.alert("错误", "找不到 Submissions 表格！", ui.ButtonSet.OK); return; }
+  var sData = sSheet.getDataRange().getValues();
+  var submissions = [];
+  for (var i = 1; i < sData.length; i++) {
+    if (sData[i][1].toString() === compId && sData[i][10]) { 
+      try {
+         var details = JSON.parse(sData[i][10]); // JSON格式的答题数组
+         submissions.push(details);
+      } catch(e) {}
+    }
+  }
+  if (submissions.length === 0) { ui.alert("提示", "该比赛目前没有任何作答记录！", ui.ButtonSet.OK); return; }
+
+  // 3. 开始统计
+  var totalStudents = submissions.length;
+  var reportData = [];
+  // 设置表头
+  reportData.push(["题号", "题目内容", "全班答错率", "选 A 人数", "选 B 人数", "选 C 人数", "选 D 人数", "未答人数"]);
+
+  for (var qIdx = 0; qIdx < questions.length; qIdx++) {
+     var q = questions[qIdx];
+     var counts = [0, 0, 0, 0]; // A, B, C, D
+     var blankCount = 0;
+     var correctCount = 0;
+
+     for (var sIdx = 0; sIdx < submissions.length; sIdx++) {
+        var ans = submissions[sIdx][qIdx];
+        if (ans === undefined || ans === null || ans === -1) {
+           blankCount++;
+        } else {
+           counts[ans]++;
+           if (ans === q.answerIndex) correctCount++;
+        }
+     }
+
+     var errorRate = ((totalStudents - correctCount) / totalStudents * 100).toFixed(1) + "%";
+     
+     // 标记正确答案
+     var row = [
+        qIdx + 1,
+        q.text,
+        errorRate,
+        counts[0] + (q.answerIndex === 0 ? " (✓ 正确)" : ""),
+        counts[1] + (q.answerIndex === 1 ? " (✓ 正确)" : ""),
+        counts[2] + (q.answerIndex === 2 ? " (✓ 正确)" : ""),
+        counts[3] + (q.answerIndex === 3 ? " (✓ 正确)" : ""),
+        blankCount
+     ];
+     reportData.push(row);
+  }
+
+  // 4. 生成新工作表
+  var sheetName = "[分析] " + compId;
+  var reportSheet = ss.getSheetByName(sheetName);
+  if (reportSheet) {
+     reportSheet.clear(); // 覆盖旧报表
+  } else {
+     reportSheet = ss.insertSheet(sheetName);
+  }
+
+  // 填入数据并美化排版
+  reportSheet.getRange(1, 1, reportData.length, reportData[0].length).setValues(reportData);
+  reportSheet.getRange("A1:H1").setFontWeight("bold").setBackground("#4f46e5").setFontColor("white"); // 靛蓝色表头
+  reportSheet.setColumnWidth(2, 500); // 题目列加宽
+  reportSheet.setColumnWidth(3, 100); 
+  reportSheet.setFrozenRows(1); // 冻结首行
+
+  ui.alert("生成成功！", "已为您生成分析报告：【" + sheetName + "】\n共分析了 " + totalStudents + " 份试卷。", ui.ButtonSet.OK);
+}
