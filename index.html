@@ -1,265 +1,1057 @@
-/**
- * 新廊华小智能问答赛系统 - Google Apps Script (全功能终极版)
- */
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>新廊华小智能问答赛系统</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <!-- 引入 html2canvas 用于生成奖状 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <!-- 新增：引入 canvas-confetti 撒花特效库 -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <style>
+        .fade-in { animation: fadeIn 0.3s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .option-btn { transition: all 0.2s; }
+        .option-btn:hover:not(:disabled) { transform: scale(1.02); }
+        .selected-option { background-color: #3b82f6 !important; color: white !important; border-color: #2563eb !important; }
+        
+        /* 语言切换样式 */
+        body.lang-ms .lang-zh { display: none !important; }
+        body:not(.lang-ms) .lang-ms { display: none !important; }
 
-const SPREADSHEET_ID = ""; // 留空则使用当前绑定表格
-
-// ================= 新增：教师专用 - 顶部菜单 =================
-function onOpen() {
-  var ui = SpreadsheetApp.getUi();
-  ui.createMenu('🛠️ 智能问答赛管理')
-      .addItem('📊 自动生成错题分析报表', 'generateErrorReport')
-      .addToUi();
-}
-
-function getSpreadsheet() {
-  return SPREADSHEET_ID ? SpreadsheetApp.openById(SPREADSHEET_ID) : SpreadsheetApp.getActiveSpreadsheet();
-}
-
-function doGet(e) {
-  const action = e.parameter.action;
-  let responseData = { success: false, message: "Unknown action" };
-  
-  try {
-    if (action === 'getCompetitions') responseData = { success: true, data: getActiveCompetitions() };
-    else if (action === 'verifyStudent') responseData = verifyStudent(e.parameter.id);
-    else if (action === 'getQuestions') responseData = { success: true, data: getQuestions(e.parameter.comp) };
-    else if (action === 'getLeaderboard') responseData = { success: true, data: getLeaderboard(e.parameter.comp) };
-  } catch (err) { responseData = { success: false, error: err.toString() }; }
-  
-  return ContentService.createTextOutput(JSON.stringify(responseData)).setMimeType(ContentService.MimeType.JSON);
-}
-
-function doPost(e) {
-  try {
-    const payload = JSON.parse(e.postData.contents);
-    const userInfo = payload.userInfo;
-    const score = payload.score;
-    const timeTaken = payload.timeTaken;
-    
-    const ss = getSpreadsheet();
-    let sheet = ss.getSheetByName("Submissions");
-    
-    if (!sheet) {
-      sheet = ss.insertSheet("Submissions");
-      sheet.appendRow(["时间戳", "比赛ID", "比赛名称", "学号", "姓名", "学校", "班级", "分数", "用时(秒)", "用时(MM:SS)", "作答记录"]);
-    }
-    
-    // 防重复提交检查
-    const data = sheet.getDataRange().getValues();
-    for(let i = 1; i < data.length; i++) {
-      if(data[i][1].toString() === userInfo.compId && data[i][3].toString() === userInfo.studentId.toString()) {
-        return ContentService.createTextOutput(JSON.stringify({ success: false, error: "Duplicate" }))
-            .setMimeType(ContentService.MimeType.JSON);
-      }
-    }
-    
-    const formattedTime = Math.floor(timeTaken / 60).toString().padStart(2, '0') + ":" + (timeTaken % 60).toString().padStart(2, '0');
-    
-    sheet.appendRow([
-      new Date(),
-      userInfo.compId,
-      userInfo.competition,
-      userInfo.studentId,
-      userInfo.name,
-      userInfo.school,
-      userInfo.className,
-      score,
-      timeTaken,
-      formattedTime,
-      JSON.stringify(payload.details) // 关键：第11列(index 10)保存学生每一题选了什么
-    ]);
-    
-    const leaderboard = getLeaderboard(userInfo.compId);
-    let rank = leaderboard.findIndex(item => item.studentId === userInfo.studentId) + 1;
-    
-    return ContentService.createTextOutput(JSON.stringify({ success: true, rank: rank }))
-      .setMimeType(ContentService.MimeType.JSON);
-      
-  } catch (err) {
-    return ContentService.createTextOutput(JSON.stringify({ success: false, error: err.toString() })).setMimeType(ContentService.MimeType.JSON);
-  }
-}
-
-function doOptions(e) {
-  return ContentService.createTextOutput("").setMimeType(ContentService.MimeType.TEXT);
-}
-
-// ================= Helpers =================
-
-function getActiveCompetitions() {
-  const sheet = getSpreadsheet().getSheetByName("Settings");
-  if (!sheet) return [];
-  const data = sheet.getDataRange().getValues();
-  const comps = [];
-  
-  for (let i = 1; i < data.length; i++) {
-    if (data[i][2] === "Active") {
-      let start = data[i][3] ? new Date(data[i][3]).getTime() : null;
-      let end = data[i][4] ? new Date(data[i][4]).getTime() : null;
-      
-      let allowReview = data[i][5] !== undefined && data[i][5].toString().trim().toUpperCase() === "NO" ? false : true;
-      let allowCert = data[i][6] !== undefined && data[i][6].toString().trim().toUpperCase() === "NO" ? false : true;
-      let allowRanking = data[i][7] !== undefined && data[i][7].toString().trim().toUpperCase() === "NO" ? false : true;
-      let allowScore = data[i][8] !== undefined && data[i][8].toString().trim().toUpperCase() === "NO" ? false : true;
-      
-      comps.push({ 
-        id: data[i][0].toString(), name: data[i][1].toString(),
-        startTime: start, endTime: end,
-        allowReview: allowReview, allowCert: allowCert, allowRanking: allowRanking, allowScore: allowScore
-      });
-    }
-  }
-  return comps;
-}
-
-function verifyStudent(studentId) {
-  const sheet = getSpreadsheet().getSheetByName("Students");
-  if (!sheet) return { success: false, error: "系统未找到 Students 数据表" };
-  
-  const data = sheet.getDataRange().getValues();
-  for (let i = 1; i < data.length; i++) {
-    if (data[i][0].toString() === studentId.toString()) {
-      return { success: true, data: { name: data[i][1].toString(), className: data[i][2].toString() } };
-    }
-  }
-  return { success: false, error: "查无此学号" };
-}
-
-function getQuestions(compId) {
-  const sheet = getSpreadsheet().getSheetByName("Questions");
-  if (!sheet) return [];
-  const data = sheet.getDataRange().getValues();
-  const questions = [];
-  for (let i = 1; i < data.length; i++) {
-    if (data[i][0].toString() === compId) {
-      questions.push({
-        id: "Q" + i, text: data[i][1],
-        options: [data[i][2], data[i][3], data[i][4], data[i][5]],
-        answerIndex: parseInt(data[i][6]),
-        imageUrl: data[i][7] ? data[i][7].toString().trim() : "" // 新增：读取第H列(第8列)作为图片链接
-      });
-    }
-  }
-  return questions;
-}
-
-function getLeaderboard(compId) {
-  const sheet = getSpreadsheet().getSheetByName("Submissions");
-  if (!sheet) return [];
-  const data = sheet.getDataRange().getValues();
-  let submissions = [];
-  
-  for (let i = 1; i < data.length; i++) {
-    if (data[i][1].toString() === compId) {
-      submissions.push({
-        studentId: data[i][3].toString(), name: data[i][4], school: data[i][5],
-        score: parseFloat(data[i][7]), timeSeconds: parseFloat(data[i][8]), time: data[i][9]
-      });
-    }
-  }
-  
-  submissions.sort((a, b) => b.score - a.score || a.timeSeconds - b.timeSeconds);
-  
-  return submissions.slice(0, 100).map((item, index) => ({
-    rank: index + 1, studentId: item.studentId, name: item.name,
-    school: item.school, score: item.score, time: item.time
-  }));
-}
-
-// ================= 新增：错题分析报表生成引擎 =================
-function generateErrorReport() {
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var ui = SpreadsheetApp.getUi();
-
-  var response = ui.prompt('生成错题分析报表', '请输入需要分析的【比赛ID】(例如: C001):', ui.ButtonSet.OK_CANCEL);
-  if (response.getSelectedButton() !== ui.Button.OK) return;
-  var compId = response.getResponseText().trim();
-  if (!compId) return;
-
-  // 1. 获取题目
-  var qSheet = ss.getSheetByName("Questions");
-  if (!qSheet) { ui.alert("错误", "找不到 Questions 表格！", ui.ButtonSet.OK); return; }
-  var qData = qSheet.getDataRange().getValues();
-  var questions = [];
-  for (var i = 1; i < qData.length; i++) {
-    if (qData[i][0].toString() === compId) {
-      questions.push({
-        text: qData[i][1],
-        answerIndex: parseInt(qData[i][6]) // 0=A, 1=B, 2=C, 3=D
-      });
-    }
-  }
-  if (questions.length === 0) { ui.alert("提示", "未找到该比赛的题目数据，请检查比赛ID是否正确！", ui.ButtonSet.OK); return; }
-
-  // 2. 获取答题记录
-  var sSheet = ss.getSheetByName("Submissions");
-  if (!sSheet) { ui.alert("错误", "找不到 Submissions 表格！", ui.ButtonSet.OK); return; }
-  var sData = sSheet.getDataRange().getValues();
-  var submissions = [];
-  for (var i = 1; i < sData.length; i++) {
-    if (sData[i][1].toString() === compId && sData[i][10]) { 
-      try {
-         var details = JSON.parse(sData[i][10]); // JSON格式的答题数组
-         submissions.push(details);
-      } catch(e) {}
-    }
-  }
-  if (submissions.length === 0) { ui.alert("提示", "该比赛目前没有任何作答记录！", ui.ButtonSet.OK); return; }
-
-  // 3. 开始统计
-  var totalStudents = submissions.length;
-  var reportData = [];
-  // 设置表头
-  reportData.push(["题号", "题目内容", "全班答错率", "选 A 人数", "选 B 人数", "选 C 人数", "选 D 人数", "未答人数"]);
-
-  for (var qIdx = 0; qIdx < questions.length; qIdx++) {
-     var q = questions[qIdx];
-     var counts = [0, 0, 0, 0]; // A, B, C, D
-     var blankCount = 0;
-     var correctCount = 0;
-
-     for (var sIdx = 0; sIdx < submissions.length; sIdx++) {
-        var ans = submissions[sIdx][qIdx];
-        if (ans === undefined || ans === null || ans === -1) {
-           blankCount++;
-        } else {
-           counts[ans]++;
-           if (ans === q.answerIndex) correctCount++;
+        /* 防作弊：禁止选中文本 */
+        .no-select {
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            -khtml-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
         }
-     }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans antialiased min-h-screen flex flex-col no-select" oncontextmenu="return false;">
 
-     var errorRate = ((totalStudents - correctCount) / totalStudents * 100).toFixed(1) + "%";
-     
-     // 标记正确答案
-     var row = [
-        qIdx + 1,
-        q.text,
-        errorRate,
-        counts[0] + (q.answerIndex === 0 ? " (✓ 正确)" : ""),
-        counts[1] + (q.answerIndex === 1 ? " (✓ 正确)" : ""),
-        counts[2] + (q.answerIndex === 2 ? " (✓ 正确)" : ""),
-        counts[3] + (q.answerIndex === 3 ? " (✓ 正确)" : ""),
-        blankCount
-     ];
-     reportData.push(row);
-  }
+    <!-- 全局弹窗 (Modal) -->
+    <div id="custom-modal" class="hidden fixed inset-0 bg-black/60 z-50 flex items-center justify-center fade-in backdrop-blur-sm p-4">
+        <div class="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl">
+            <div id="modal-icon" class="text-center text-4xl mb-4 text-orange-500"><i class="fas fa-exclamation-triangle"></i></div>
+            <h3 id="modal-title" class="text-xl font-bold text-center text-gray-800 mb-2">提示</h3>
+            <p id="modal-message" class="text-gray-600 text-center mb-6 text-sm">内容</p>
+            <div class="flex justify-center gap-3" id="modal-buttons">
+                <button id="modal-btn-cancel" class="hidden px-5 py-2.5 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg font-medium transition">取消</button>
+                <button id="modal-btn-confirm" class="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition w-full">确定</button>
+            </div>
+        </div>
+    </div>
 
-  // 4. 生成新工作表
-  var sheetName = "[分析] " + compId;
-  var reportSheet = ss.getSheetByName(sheetName);
-  if (reportSheet) {
-     reportSheet.clear(); // 覆盖旧报表
-  } else {
-     reportSheet = ss.insertSheet(sheetName);
-  }
+    <!-- 顶部导航 -->
+    <header class="bg-blue-600 text-white shadow-md relative z-20">
+        <div class="max-w-4xl mx-auto px-4 py-4 flex flex-col md:flex-row md:justify-between md:items-center gap-3">
+            <div>
+                <h1 class="text-xl font-bold leading-tight"><i class="fas fa-school mr-2"></i>新廊华小智能问答赛系统</h1>
+                <div class="text-sm font-medium opacity-90 text-blue-100 mt-1">Sistem Kuiz Pintar SJK (C) Ladang Grisek</div>
+            </div>
+            <div class="flex items-center gap-4">
+                <!-- 语文切换 Toggle -->
+                <div id="lang-toggle-container" class="flex items-center gap-2 text-sm bg-blue-700/50 px-3 py-1.5 rounded-full cursor-pointer">
+                    <span class="font-bold text-white lang-zh-label">中</span>
+                    <button type="button" id="lang-toggle" class="w-10 h-5 bg-blue-400 rounded-full relative transition-colors focus:outline-none shadow-inner pointer-events-none">
+                        <div id="lang-toggle-dot" class="w-4 h-4 bg-white rounded-full absolute top-0.5 left-0.5 transition-transform shadow-sm"></div>
+                    </button>
+                    <span class="font-bold text-blue-200 lang-ms-label">BM</span>
+                </div>
+                <!-- 用户信息 -->
+                <div id="header-user-info" class="hidden text-sm font-medium bg-blue-800/40 px-3 py-1.5 rounded-full"></div>
+            </div>
+        </div>
+    </header>
 
-  // 填入数据并美化排版
-  reportSheet.getRange(1, 1, reportData.length, reportData[0].length).setValues(reportData);
-  reportSheet.getRange("A1:H1").setFontWeight("bold").setBackground("#4f46e5").setFontColor("white"); // 靛蓝色表头
-  reportSheet.setColumnWidth(2, 500); // 题目列加宽
-  reportSheet.setColumnWidth(3, 100); 
-  reportSheet.setFrozenRows(1); // 冻结首行
+    <!-- 主体内容区 -->
+    <main class="flex-grow flex items-center justify-center p-4">
+        <div class="max-w-4xl w-full">
+            
+            <!-- 视图 1：加载中 -->
+            <div id="view-loading" class="text-center py-20 fade-in hidden">
+                <i class="fas fa-spinner fa-spin text-4xl text-blue-500 mb-4"></i>
+                <p class="text-lg text-slate-500" id="loading-text">
+                    <span class="lang-zh">正在加载系统数据...</span>
+                    <span class="lang-ms">Sedang memuatkan data sistem...</span>
+                </p>
+            </div>
 
-  ui.alert("生成成功！", "已为您生成分析报告：【" + sheetName + "】\n共分析了 " + totalStudents + " 份试卷。", ui.ButtonSet.OK);
-}
+            <!-- 视图 2：报名与比赛选择 -->
+            <div id="view-register" class="bg-white rounded-2xl shadow-xl overflow-hidden fade-in hidden">
+                <div class="bg-indigo-50 p-6 border-b border-indigo-100">
+                    <h2 class="text-2xl font-bold text-indigo-800 text-center">
+                        <span class="lang-zh">参赛登记</span>
+                        <span class="lang-ms">Pendaftaran Pertandingan</span>
+                    </h2>
+                    <p class="text-center text-indigo-600 mt-1 font-medium">SJK (C) Ladang Grisek</p>
+                </div>
+                <div class="p-8">
+                    <form id="register-form" class="space-y-6">
+                        <!-- 学号验证区 -->
+                        <div class="bg-blue-50 p-5 rounded-xl border border-blue-100 shadow-inner">
+                            <label class="block text-sm font-bold text-blue-900 mb-2">
+                                <span class="lang-zh">1. 请输入学号验证身份</span>
+                                <span class="lang-ms">1. Sila masukkan ID Murid untuk pengesahan</span>
+                            </label>
+                            <div class="flex gap-3">
+                                <div class="relative flex-grow">
+                                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                        <i class="fas fa-id-card text-gray-400"></i>
+                                    </div>
+                                    <input type="text" id="reg-student-id" required placeholder="输入学号 (如: 1001)" class="w-full pl-10 pr-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors">
+                                </div>
+                                <button type="button" id="btn-verify-id" class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-6 py-3 rounded-lg transition-colors shadow-sm whitespace-nowrap">
+                                    <i class="fas fa-search mr-1"></i> <span class="lang-zh">验证</span><span class="lang-ms">Sahkan</span>
+                                </button>
+                            </div>
+                            <p id="verify-msg" class="text-sm mt-2 hidden"></p>
+                        </div>
+
+                        <!-- 学生资料区 (自动锁定) -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 opacity-60 transition-opacity duration-300" id="student-info-section">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1"><span class="lang-zh">中/英文姓名</span><span class="lang-ms">Nama Penuh</span></label>
+                                <input type="text" id="reg-name" required readonly placeholder="验证学号后自动填写" class="w-full px-4 py-3 rounded-lg border border-gray-200 bg-gray-100 text-gray-600 cursor-not-allowed font-medium">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1"><span class="lang-zh">班级</span><span class="lang-ms">Kelas</span></label>
+                                <input type="text" id="reg-class" required readonly placeholder="验证学号后自动填写" class="w-full px-4 py-3 rounded-lg border border-gray-200 bg-gray-100 text-gray-600 cursor-not-allowed font-medium">
+                            </div>
+                            <div class="hidden"><input type="text" id="reg-school" value="SJK (C) Ladang Grisek"></div>
+                        </div>
+
+                        <div class="border-t border-gray-100 pt-6">
+                            <label class="block text-sm font-bold text-gray-700 mb-2">
+                                <span class="lang-zh">2. 选择比赛项目</span><span class="lang-ms">2. Pilih Pertandingan</span>
+                            </label>
+                            <select id="reg-competition" required disabled class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-gray-100 cursor-not-allowed transition-colors">
+                                <option value="" class="lang-zh">请先验证学号...</option>
+                                <option value="" class="lang-ms">Sila sahkan ID dahulu...</option>
+                            </select>
+                            <!-- 新增：时间验证提示文本 -->
+                            <p id="comp-time-msg" class="hidden mt-2"></p>
+                        </div>
+
+                        <!-- 恢复进度提示 -->
+                        <div id="resume-alert" class="hidden bg-yellow-50 border border-yellow-200 text-yellow-800 px-4 py-3 rounded-lg flex items-center">
+                            <i class="fas fa-history mr-2"></i>
+                            <span class="text-sm">
+                                <span class="lang-zh">检测到您之前有未完成的比赛记录，点击下方按钮将自动恢复进度。</span>
+                                <span class="lang-ms">Rekod belum selesai dikesan, klik butang untuk menyambung.</span>
+                            </span>
+                        </div>
+
+                        <button type="submit" id="btn-submit-reg" disabled class="w-full bg-gray-400 text-white font-bold py-4 px-4 rounded-xl transition-all shadow-md mt-4 text-lg cursor-not-allowed">
+                            <span class="lang-zh">确认身份并进入比赛</span><span class="lang-ms">Sahkan Identiti & Mula</span> 
+                            <i class="fas fa-arrow-right ml-2"></i>
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- 视图 3：赛前说明 -->
+            <div id="view-instructions" class="bg-white rounded-2xl shadow-xl overflow-hidden fade-in hidden">
+                <div class="p-8 text-center">
+                    <i class="fas fa-clipboard-list text-5xl text-blue-500 mb-4"></i>
+                    <h2 class="text-2xl font-bold text-gray-800 mb-4" id="inst-title">比赛说明</h2>
+                    <div class="bg-gray-50 rounded-lg p-6 text-left mb-6 text-gray-700 space-y-3">
+                        <p><i class="fas fa-list-ol text-blue-500 mr-2"></i>
+                            <span class="lang-zh">题目数量：</span><span class="lang-ms">Jumlah soalan: </span>
+                            <span id="inst-count" class="font-bold text-blue-600 text-lg">--</span>
+                            <span class="lang-zh">题 (MCQ单选题)</span><span class="lang-ms">Soalan (MCQ)</span>
+                        </p>
+                        <p><i class="fas fa-check-circle text-green-500 mr-2"></i> 
+                            <span class="lang-zh">题目防作弊机制已开启：题目选项将随机打乱。</span>
+                            <span class="lang-ms">Sistem Anti-Tiru Aktif: Pilihan jawapan akan dikocok secara rawak.</span>
+                        </p>
+                        <p><i class="fas fa-clock text-blue-500 mr-2"></i> 
+                            <span class="lang-zh">计时规则：系统记录您的作答时间，断线重连会自动继续计时。</span>
+                            <span class="lang-ms">Masa: Sistem merekod masa. Masa diteruskan walau terputus talian.</span>
+                        </p>
+                        <p><i class="fas fa-exclamation-triangle text-red-500 mr-2"></i> 
+                            <span class="lang-zh font-bold text-red-600">严重警告：全屏强制与切屏检测已启动。比赛途中请勿退出全屏或切换页面，否则成绩将作废。</span>
+                            <span class="lang-ms font-bold text-red-600">Amaran: Mod Skrin Penuh aktif. Dilarang menukar aplikasi/tab semasa ujian. Jika dikesan, penyertaan terbatal.</span>
+                        </p>
+                    </div>
+                    <button id="btn-start-quiz" class="bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-8 rounded-full transition-colors shadow-lg text-lg">
+                        <span class="lang-zh">开始答题</span><span class="lang-ms">Mula Menjawab</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- 视图 4：答题区 -->
+            <div id="view-quiz" class="bg-white rounded-2xl shadow-xl overflow-hidden fade-in hidden">
+                <div class="bg-indigo-600 text-white text-center py-3 px-4 font-bold md:text-lg shadow-sm relative z-10">
+                    <i class="fas fa-trophy mr-2 text-yellow-300"></i><span id="quiz-header-comp-name">加载中...</span>
+                </div>
+                <div class="bg-gray-50 p-4 border-b flex justify-between items-center text-sm font-medium text-gray-600">
+                    <div>
+                        <span id="quiz-progress-text">题目: 1 / 10</span>
+                    </div>
+                    <div class="flex items-center text-blue-600 bg-blue-100 px-3 py-1 rounded-full">
+                        <i class="fas fa-stopwatch mr-2"></i>
+                        <span id="quiz-timer">00:00</span>
+                    </div>
+                </div>
+                <div class="w-full bg-gray-200 h-1.5">
+                    <div id="quiz-progress-bar" class="bg-blue-600 h-1.5 transition-all duration-300" style="width: 10%"></div>
+                </div>
+                
+                <div class="p-6 md:p-8 min-h-[300px]">
+                    <h3 id="question-text" class="text-xl md:text-2xl font-bold text-gray-800 mb-6 leading-relaxed"></h3>
+                    
+                    <!-- 新增：图片题展示区 -->
+                    <div id="question-image-container" class="hidden mb-6 text-center">
+                        <img id="question-image" src="" alt="题目附图" class="max-h-64 object-contain mx-auto rounded-lg shadow-md border border-gray-200">
+                    </div>
+                    
+                    <div id="options-container" class="space-y-3"></div>
+                </div>
+                
+                <div class="bg-gray-50 p-4 border-t flex justify-end">
+                    <button id="btn-next-question" disabled class="bg-blue-600 disabled:bg-gray-300 hover:bg-blue-700 disabled:hover:bg-gray-300 text-white font-bold py-2 px-6 rounded-lg transition-colors">
+                        <span class="lang-zh">下一题</span><span class="lang-ms">Seterusnya</span> <i class="fas fa-chevron-right ml-1"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- 视图 5：成绩与排行榜 -->
+            <div id="view-result" class="bg-white rounded-2xl shadow-xl overflow-hidden fade-in hidden">
+                <div class="p-8">
+                    <div class="text-center mb-8">
+                        <div id="result-icon" class="inline-block p-4 rounded-full bg-green-100 mb-4">
+                            <i class="fas fa-trophy text-5xl text-yellow-500"></i>
+                        </div>
+                        <h2 class="text-3xl font-bold text-gray-800 mb-2">
+                            <span class="lang-zh">比赛完成！</span><span class="lang-ms">Pertandingan Selesai!</span>
+                        </h2>
+                        <p class="text-gray-500">
+                            <span class="lang-zh">感谢您的参与。</span>
+                            <span class="lang-ms">Terima kasih atas penyertaan anda.</span>
+                        </p>
+                        
+                        <!-- 生成奖状按钮 (仅高分显示) -->
+                        <div id="cert-btn-container" class="mt-4 hidden">
+                            <button id="btn-download-cert" class="bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-white font-bold py-2 px-6 rounded-full shadow-lg transform transition hover:scale-105">
+                                <i class="fas fa-award mr-2"></i>
+                                <span class="lang-zh">下载荣誉证书</span><span class="lang-ms">Muat Turun Sijil</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+                        <div id="score-card-container" class="bg-blue-50 p-4 rounded-xl text-center border border-blue-100">
+                            <p class="text-sm text-blue-500 font-medium mb-1"><span class="lang-zh">得分</span><span class="lang-ms">Markah</span></p>
+                            <p class="text-2xl font-bold text-blue-700" id="res-score">--</p>
+                        </div>
+                        <div id="accuracy-card-container" class="bg-green-50 p-4 rounded-xl text-center border border-green-100">
+                            <p class="text-sm text-green-500 font-medium mb-1"><span class="lang-zh">准确率</span><span class="lang-ms">Ketepatan</span></p>
+                            <p class="text-2xl font-bold text-green-700" id="res-accuracy">--%</p>
+                        </div>
+                        <div class="bg-purple-50 p-4 rounded-xl text-center border border-purple-100">
+                            <p class="text-sm text-purple-500 font-medium mb-1"><span class="lang-zh">用时</span><span class="lang-ms">Masa</span></p>
+                            <p class="text-2xl font-bold text-purple-700" id="res-time">--</p>
+                        </div>
+                        <div id="rank-card-container" class="bg-orange-50 p-4 rounded-xl text-center border border-orange-100">
+                            <p class="text-sm text-orange-500 font-medium mb-1"><span class="lang-zh">排名</span><span class="lang-ms">Kedudukan</span></p>
+                            <p class="text-2xl font-bold text-orange-700" id="res-rank">计算中...</p>
+                        </div>
+                    </div>
+
+                    <!-- 考卷回顾 (Result Review) -->
+                    <div id="review-section-container" class="mb-8 border border-gray-200 rounded-xl overflow-hidden hidden">
+                        <div class="bg-gray-100 px-4 py-3 border-b cursor-pointer flex justify-between items-center" id="toggle-review">
+                            <h3 class="font-bold text-gray-700">
+                                <i class="fas fa-search mr-2"></i><span class="lang-zh">赛后考卷回顾</span><span class="lang-ms">Semakan Jawapan</span>
+                            </h3>
+                            <i class="fas fa-chevron-down text-gray-500 transition-transform" id="review-icon"></i>
+                        </div>
+                        <div id="review-content" class="hidden divide-y divide-gray-100 max-h-96 overflow-y-auto bg-white p-4">
+                            <!-- 回顾内容 -->
+                        </div>
+                    </div>
+
+                    <!-- 排行榜 -->
+                    <div id="leaderboard-section-container" class="border rounded-xl overflow-hidden mb-6">
+                        <div class="bg-gray-100 px-4 py-3 border-b flex justify-between items-center">
+                            <h3 class="font-bold text-gray-700"><i class="fas fa-list-ol mr-2"></i><span class="lang-zh">排行榜</span><span class="lang-ms">Papan Pendahulu</span></h3>
+                            <button id="btn-refresh-leaderboard" class="text-sm text-blue-600 hover:text-blue-800"><i class="fas fa-sync-alt"></i></button>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left text-sm">
+                                <thead class="bg-gray-50 text-gray-600">
+                                    <tr>
+                                        <th class="py-2 px-4 border-b">No</th>
+                                        <th class="py-2 px-4 border-b">Nama</th>
+                                        <th class="py-2 px-4 border-b">Markah</th>
+                                        <th class="py-2 px-4 border-b">Masa</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="leaderboard-body" class="divide-y divide-gray-100"></tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="text-center">
+                        <button onclick="location.reload()" class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-2 px-6 rounded-lg transition-colors">
+                            <span class="lang-zh">退出系统</span><span class="lang-ms">Log Keluar</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- 隐藏的电子奖状模板 (修复 iOS Safari 截图白屏问题) -->
+    <!-- 将绝对定位移出屏幕外改为固定定位、透明且置于最底层 -->
+    <div id="certificate-template" class="fixed top-0 left-0 z-[-1000] opacity-0 pointer-events-none w-[800px] h-[600px] bg-white p-8 flex flex-col items-center justify-center border-[16px] border-double border-indigo-900 font-serif">
+        <div class="absolute inset-0 opacity-5 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')]"></div>
+        <i class="fas fa-award text-6xl text-yellow-500 mb-6"></i>
+        <h1 class="text-5xl font-bold text-indigo-900 mb-2 uppercase tracking-widest">SIJIL PENCAPAIAN</h1>
+        <h2 class="text-2xl text-gray-600 mb-8 font-sans">SJK (C) Ladang Grisek</h2>
+        <p class="text-lg text-gray-700 mb-2">Sijil ini dianugerahkan kepada:</p>
+        <div class="text-4xl font-bold text-blue-800 mb-6 border-b-2 border-gray-400 px-10 pb-2" id="cert-name">NAMA MURID</div>
+        <p class="text-lg text-gray-700 mb-4 text-center max-w-xl">
+            Kerana telah menyertai dengan jayanya dalam pertandingan <br>
+            <strong id="cert-comp-name" class="text-xl">NAMA PERTANDINGAN</strong>
+        </p>
+        <div class="bg-yellow-100 border-2 border-yellow-400 rounded-lg px-6 py-3 my-4 flex items-center gap-4">
+            <span class="text-gray-700 font-bold">Markah:</span>
+            <span class="text-3xl font-bold text-yellow-600" id="cert-score">100%</span>
+        </div>
+        <div class="mt-8 text-gray-500 italic" id="cert-date">Tarikh: 2026-01-01</div>
+    </div>
+
+    <!-- 系统逻辑脚本 -->
+    <script>
+        const GAS_URL = "https://script.google.com/macros/s/AKfycbxjM0IirZjAAQ3kPUrRRPqwWVS14f3PNb7p3ep0bgmUWFFNUi9oiPznBno2mfJ8EBoP/exec"; // 替换为后端链接，留空开启模拟模式
+
+        const state = {
+            userInfo: { isVerified: false, studentId: "" },
+            competitions: [],
+            currentCompetition: null,
+            questions: [],
+            currentQIndex: 0,
+            answers: [],
+            startTime: null,
+            timerInterval: null,
+            elapsedSeconds: 0,
+            score: 0,
+            cheatWarnings: 0,
+            isMockMode: GAS_URL.trim() === "",
+            isMs: false
+        };
+
+        const views = {
+            loading: document.getElementById('view-loading'),
+            register: document.getElementById('view-register'),
+            instructions: document.getElementById('view-instructions'),
+            quiz: document.getElementById('view-quiz'),
+            result: document.getElementById('view-result')
+        };
+
+        // UI Helpers
+        function showView(viewName) {
+            Object.values(views).forEach(v => v.classList.add('hidden'));
+            views[viewName].classList.remove('hidden');
+            if(viewName === 'quiz') setupAntiCheat(); // 进入考试时才开启防作弊
+            else teardownAntiCheat();
+        }
+
+        // 修改 loading 提示以支持双语并避免丢失 innerHTML 标签
+        function showLoading(zhText, msText) {
+            document.getElementById('loading-text').innerHTML = `
+                <span class="lang-zh">${zhText}</span>
+                <span class="lang-ms">${msText || zhText}</span>
+            `;
+            showView('loading');
+        }
+
+        function formatTime(totalSeconds) {
+            const m = Math.floor(totalSeconds / 60).toString().padStart(2, '0');
+            const s = (totalSeconds % 60).toString().padStart(2, '0');
+            return `${m}:${s}`;
+        }
+
+        // ================= Custom Modal System =================
+        function showModal(title, message, type = 'info', onConfirm = null, showCancel = false, confirmText = null) {
+            const modal = document.getElementById('custom-modal');
+            const icon = document.getElementById('modal-icon');
+            const btnCancel = document.getElementById('modal-btn-cancel');
+            const btnConfirm = document.getElementById('modal-btn-confirm');
+            
+            document.getElementById('modal-title').innerText = title;
+            document.getElementById('modal-message').innerHTML = message;
+            
+            if(type === 'warning') icon.innerHTML = '<i class="fas fa-exclamation-triangle text-orange-500"></i>';
+            else if(type === 'error') icon.innerHTML = '<i class="fas fa-times-circle text-red-500"></i>';
+            else icon.innerHTML = '<i class="fas fa-info-circle text-blue-500"></i>';
+
+            btnCancel.style.display = showCancel ? 'block' : 'none';
+            btnConfirm.innerText = confirmText || (state.isMs ? 'OK' : '确定');
+            
+            btnConfirm.onclick = () => {
+                modal.classList.add('hidden');
+                if(onConfirm) onConfirm();
+            };
+            btnCancel.onclick = () => modal.classList.add('hidden');
+            
+            modal.classList.remove('hidden');
+        }
+
+        // ================= Language Toggle =================
+        document.getElementById('lang-toggle-container').addEventListener('click', () => {
+            state.isMs = !state.isMs;
+            const body = document.body;
+            const toggle = document.getElementById('lang-toggle');
+            const dot = document.getElementById('lang-toggle-dot');
+            const zhLabel = document.querySelector('.lang-zh-label');
+            const msLabel = document.querySelector('.lang-ms-label');
+            
+            if(state.isMs) {
+                body.classList.add('lang-ms');
+                toggle.classList.replace('bg-blue-400', 'bg-indigo-400');
+                dot.classList.add('translate-x-5');
+                zhLabel.classList.replace('text-white', 'text-blue-200');
+                msLabel.classList.replace('text-blue-200', 'text-white');
+                document.getElementById('reg-student-id').placeholder = "Masukkan ID (Cth: 1001)";
+            } else {
+                body.classList.remove('lang-ms');
+                toggle.classList.replace('bg-indigo-400', 'bg-blue-400');
+                dot.classList.remove('translate-x-5');
+                zhLabel.classList.replace('text-blue-200', 'text-white');
+                msLabel.classList.replace('text-white', 'text-blue-200');
+                document.getElementById('reg-student-id').placeholder = "输入学号 (如: 1001)";
+            }
+            updateDynamicText();
+        });
+
+        function updateDynamicText() {
+            if (state.questions.length > 0) {
+                document.getElementById('quiz-progress-text').innerText = state.isMs 
+                    ? `Soalan: ${state.currentQIndex + 1} / ${state.questions.length}` 
+                    : `题目: ${state.currentQIndex + 1} / ${state.questions.length}`;
+            }
+        }
+
+        // ================= Anti-Cheat & Local Storage =================
+        const antiCheatHandler = () => {
+            if (document.hidden && !views.quiz.classList.contains('hidden')) {
+                state.cheatWarnings++;
+                if (state.cheatWarnings === 1) {
+                    showModal(
+                        state.isMs ? "Amaran" : "警告！",
+                        state.isMs ? "Anda telah dikesan meninggalkan halaman ujian. Jika diulangi, ujian akan dibatalkan." : "检测到您切换了页面！这是第一次警告。如果再次切屏，系统将自动强制交卷！",
+                        'warning'
+                    );
+                } else if (state.cheatWarnings >= 2) {
+                    showModal(
+                        state.isMs ? "Ujian Dibatalkan" : "作弊判定",
+                        state.isMs ? "Anda meninggalkan halaman terlalu banyak kali. Markah akan dihantar." : "多次离开考试页面，系统已自动强制交卷！",
+                        'error',
+                        submitQuiz
+                    );
+                }
+            }
+        };
+
+        // 新增：全屏退出检测逻辑
+        const fullscreenCheatHandler = () => {
+            if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+                if (!views.quiz.classList.contains('hidden')) {
+                    state.cheatWarnings++;
+                    if (state.cheatWarnings === 1) {
+                        showModal(
+                            state.isMs ? "Amaran Skrin Penuh" : "全屏警告！",
+                            state.isMs ? "Anda telah keluar dari mod Skrin Penuh. Jika diulangi, ujian akan dibatalkan." : "检测到您退出了全屏模式！这是第一次警告。如果再次退出，系统将强制交卷！",
+                            'warning',
+                            () => {
+                                // 确认后再次强制进入全屏
+                                const elem = document.documentElement;
+                                try {
+                                    if (elem.requestFullscreen) {
+                                        elem.requestFullscreen().catch(err => console.warn("Fullscreen API is disallowed by permissions policy."));
+                                    } else if (elem.webkitRequestFullscreen) {
+                                        elem.webkitRequestFullscreen();
+                                    }
+                                } catch (e) {
+                                    console.warn("Fullscreen API error:", e);
+                                }
+                            }
+                        );
+                    } else if (state.cheatWarnings >= 2) {
+                        showModal(
+                            state.isMs ? "Ujian Dibatalkan" : "作弊判定",
+                            state.isMs ? "Pelanggaran dikesan. Markah akan dihantar." : "多次退出全屏或切屏，系统已强制交卷！",
+                            'error',
+                            submitQuiz
+                        );
+                    }
+                }
+            }
+        };
+
+        function setupAntiCheat() {
+            document.addEventListener('visibilitychange', antiCheatHandler);
+            document.addEventListener('fullscreenchange', fullscreenCheatHandler);
+            document.addEventListener('webkitfullscreenchange', fullscreenCheatHandler);
+        }
+        function teardownAntiCheat() {
+            document.removeEventListener('visibilitychange', antiCheatHandler);
+            document.removeEventListener('fullscreenchange', fullscreenCheatHandler);
+            document.removeEventListener('webkitfullscreenchange', fullscreenCheatHandler);
+        }
+
+        // 新增：防误触 - 拦截浏览器返回、刷新和关闭
+        const preventReload = (e) => {
+            e.preventDefault();
+            e.returnValue = '';
+            return '';
+        };
+
+        // 新增：深度防作弊 - 拦截 F12, Ctrl+C, Ctrl+P 等快捷键
+        document.addEventListener('keydown', (e) => {
+            if (!views.quiz.classList.contains('hidden')) {
+                // 拦截 F12, Ctrl+Shift+I (开发者工具), Ctrl+P (打印), Ctrl+C (复制), Ctrl+S (保存)
+                if (e.key === 'F12' || 
+                   (e.ctrlKey && e.shiftKey && e.key === 'I') || 
+                   (e.ctrlKey && (e.key === 'p' || e.key === 'c' || e.key === 's'))) {
+                    e.preventDefault();
+                }
+            }
+        });
+
+        function saveProgress() {
+            if(!state.userInfo.studentId || !state.currentCompetition) return;
+            const lsKey = `quiz_${state.currentCompetition.id}_${state.userInfo.studentId}`;
+            const dataToSave = {
+                questions: state.questions, // 包含已打乱的选项
+                currentQIndex: state.currentQIndex,
+                answers: state.answers,
+                elapsedSeconds: state.elapsedSeconds
+            };
+            localStorage.setItem(lsKey, JSON.stringify(dataToSave));
+        }
+
+        function checkSavedProgress(compId, studentId) {
+            const saved = localStorage.getItem(`quiz_${compId}_${studentId}`);
+            if (saved) {
+                document.getElementById('resume-alert').classList.remove('hidden');
+                return JSON.parse(saved);
+            }
+            document.getElementById('resume-alert').classList.add('hidden');
+            return null;
+        }
+
+        function clearProgress() {
+            if(state.currentCompetition && state.userInfo.studentId) {
+                localStorage.removeItem(`quiz_${state.currentCompetition.id}_${state.userInfo.studentId}`);
+            }
+        }
+
+        function shuffleOptions(question) {
+            // 打乱选项，并追踪正确答案的新位置
+            let optObjs = question.options.map((opt, i) => ({ text: opt, isCorrect: i === question.answerIndex }));
+            optObjs.sort(() => Math.random() - 0.5);
+            question.options = optObjs.map(o => o.text);
+            question.answerIndex = optObjs.findIndex(o => o.isCorrect);
+            return question;
+        }
+
+        // ================= API & Mock Data =================
+        const mockData = {
+            students: { "1001": { name: "王小明", className: "6A" }, "1002": { name: "李小华", className: "6B" } },
+            competitions: [
+                { id: "C001", name: "2026年全柔华小常识比赛", startTime: Date.now() - 100000, endTime: Date.now() + 86400000, allowReview: true, allowCert: true, allowRanking: true, allowScore: true },
+                { id: "C002", name: "[测试] 闭卷赛(无回顾/奖状/排名/分数)", startTime: null, endTime: null, allowReview: false, allowCert: false, allowRanking: false, allowScore: false },
+                { id: "C003", name: "[测试] 已经结束的比赛", startTime: Date.now() - 172800000, endTime: Date.now() - 86400000, allowReview: true, allowCert: false, allowRanking: true, allowScore: true }
+            ],
+            questions: [
+                { id: "Q1", text: "以下哪个是柔佛州的州旗？", options: ["选项A", "选项B", "选项C", "选项D"], answerIndex: 0, imageUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5a/Flag_of_Johor.svg/800px-Flag_of_Johor.svg.png" },
+                { id: "Q2", text: "马来西亚现任最高元首来自哪个州属？", options: ["柔佛州", "彭亨州", "雪兰莪州", "霹雳州"], answerIndex: 0 },
+                { id: "Q3", text: "太阳系中体积最大的行星是？", options: ["地球", "火星", "木星", "土星"], answerIndex: 2 }
+            ],
+            leaderboard: [ { rank: 1, name: "陈测试", school: "SJK (C) Ladang Grisek", score: 95, time: "00:45" } ]
+        };
+
+        async function apiCall(action, payload = null) {
+            if (state.isMockMode) {
+                return new Promise(resolve => {
+                    setTimeout(() => {
+                        if (action === 'verifyStudent') {
+                            const st = mockData.students[payload.id];
+                            resolve(st ? { success: true, data: st } : { success: false, error: "未找到该学号" });
+                        }
+                        if (action === 'getCompetitions') resolve({ success: true, data: mockData.competitions });
+                        if (action === 'getQuestions') resolve({ success: true, data: JSON.parse(JSON.stringify(mockData.questions)) });
+                        if (action === 'submit') {
+                            // Mock double submission check
+                            const isDup = mockData.leaderboard.some(l => l.name === state.userInfo.name);
+                            if(isDup && payload.score !== -1) return resolve({ success: false, error: "Duplicate" }); // -1 is hack for testing logic
+                            
+                            mockData.leaderboard.push({ name: state.userInfo.name, school: state.userInfo.school, score: payload.score, time: formatTime(payload.timeTaken) });
+                            mockData.leaderboard.sort((a,b) => b.score - a.score || a.time.localeCompare(b.time));
+                            resolve({ success: true, rank: mockData.leaderboard.findIndex(i => i.name === state.userInfo.name) + 1 });
+                        }
+                        if (action === 'getLeaderboard') resolve({ success: true, data: mockData.leaderboard.slice(0,10) });
+                    }, 500);
+                });
+            } else {
+                try {
+                    let url = `${GAS_URL}?action=${action}`;
+                    let options = { method: 'GET' };
+                    if (payload && action === 'submit') options = { method: 'POST', body: JSON.stringify(payload) };
+                    else if (payload && action === 'verifyStudent') url += `&id=${encodeURIComponent(payload.id)}`;
+                    else if (payload && action === 'getQuestions') url += `&comp=${encodeURIComponent(payload.compId)}`;
+                    else if (payload && action === 'getLeaderboard') url += `&comp=${encodeURIComponent(payload.compId)}`;
+
+                    const response = await fetch(url, options);
+                    return await response.json();
+                } catch (error) { return { success: false, error: error.message }; }
+            }
+        }
+
+        // ================= Core Logic =================
+        window.onload = async () => {
+            showLoading("正在获取比赛信息...", "Mendapatkan maklumat pertandingan...");
+            const res = await apiCall('getCompetitions');
+            if (res.success) {
+                state.competitions = res.data;
+                showView('register');
+            } else { showModal("Error", "获取比赛失败，请刷新重试", "error"); }
+        };
+
+        // 监听学号输入框的 Enter 键
+        document.getElementById('reg-student-id').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault(); // 阻止表单的默认提交行为
+                document.getElementById('btn-verify-id').click(); // 触发验证按钮点击
+            }
+        });
+
+        // 学号验证
+        document.getElementById('btn-verify-id').addEventListener('click', async () => {
+            const studentId = document.getElementById('reg-student-id').value.trim();
+            const msgEl = document.getElementById('verify-msg');
+            const btn = document.getElementById('btn-verify-id');
+            
+            if (!studentId) return;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>'; btn.disabled = true;
+
+            const res = await apiCall('verifyStudent', { id: studentId });
+            btn.innerHTML = `<i class="fas fa-search"></i>`; btn.disabled = false;
+
+            if (res.success) {
+                document.getElementById('reg-name').value = res.data.name;
+                document.getElementById('reg-class').value = res.data.className;
+                document.getElementById('student-info-section').classList.remove('opacity-60');
+                
+                msgEl.innerHTML = `<i class="fas fa-check-circle mr-1"></i> ${state.isMs?'Disahkan':'验证成功'}`;
+                msgEl.className = "text-sm mt-2 text-green-600 font-medium block";
+                
+                state.userInfo.isVerified = true;
+                state.userInfo.studentId = studentId;
+
+                const select = document.getElementById('reg-competition');
+                select.disabled = false; select.classList.remove('bg-gray-100', 'cursor-not-allowed');
+                select.innerHTML = `<option value="">${state.isMs?'Pilih...':'请选择比赛...'}</option>`;
+                state.competitions.forEach(c => select.add(new Option(c.name, c.id)));
+
+                // 监听比赛选择以检查恢复进度和时间限制
+                select.addEventListener('change', () => {
+                    const compId = select.value;
+                    const timeMsgEl = document.getElementById('comp-time-msg');
+                    const submitBtn = document.getElementById('btn-submit-reg');
+                    
+                    if(!compId) {
+                        document.getElementById('resume-alert').classList.add('hidden');
+                        timeMsgEl.classList.add('hidden');
+                        submitBtn.disabled = true;
+                        submitBtn.classList.remove('bg-indigo-600', 'hover:bg-indigo-700');
+                        submitBtn.classList.add('bg-gray-400', 'cursor-not-allowed');
+                        return;
+                    }
+                    
+                    const comp = state.competitions.find(c => c.id === compId);
+                    const now = Date.now();
+                    let canJoin = true;
+                    
+                    // 检查时间逻辑
+                    if (comp.startTime && now < comp.startTime) {
+                        canJoin = false;
+                        const dateStr = new Date(comp.startTime).toLocaleString('ms-MY', { hour12: true });
+                        timeMsgEl.innerHTML = `<i class="fas fa-lock mr-1"></i> <span class="lang-zh">比赛未开始 (开放时间: ${dateStr})</span><span class="lang-ms">Belum bermula (Masa: ${dateStr})</span>`;
+                        timeMsgEl.className = "text-sm mt-2 font-medium block text-orange-600";
+                    } else if (comp.endTime && now > comp.endTime) {
+                        canJoin = false;
+                        timeMsgEl.innerHTML = `<i class="fas fa-times-circle mr-1"></i> <span class="lang-zh">比赛已结束</span><span class="lang-ms">Pertandingan telah tamat</span>`;
+                        timeMsgEl.className = "text-sm mt-2 font-medium block text-red-600";
+                    } else {
+                        timeMsgEl.classList.add('hidden');
+                    }
+                    
+                    if (canJoin) {
+                        submitBtn.disabled = false;
+                        submitBtn.classList.remove('bg-gray-400', 'cursor-not-allowed');
+                        submitBtn.classList.add('bg-indigo-600', 'hover:bg-indigo-700');
+                        checkSavedProgress(compId, studentId);
+                    } else {
+                        submitBtn.disabled = true;
+                        submitBtn.classList.remove('bg-indigo-600', 'hover:bg-indigo-700');
+                        submitBtn.classList.add('bg-gray-400', 'cursor-not-allowed');
+                        document.getElementById('resume-alert').classList.add('hidden');
+                    }
+                });
+
+                document.getElementById('btn-submit-reg').disabled = false;
+                document.getElementById('btn-submit-reg').classList.remove('bg-gray-400');
+                document.getElementById('btn-submit-reg').classList.add('bg-indigo-600');
+                document.getElementById('reg-student-id').readOnly = true;
+                btn.style.display = 'none';
+            } else {
+                msgEl.innerHTML = `<i class="fas fa-times-circle mr-1"></i> ${state.isMs?'Tiada Rekod':res.error}`;
+                msgEl.className = "text-sm mt-2 text-red-500 font-medium block";
+            }
+        });
+
+        // 报名提交
+        document.getElementById('register-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const compId = document.getElementById('reg-competition').value;
+            if(!compId) return;
+            
+            state.currentCompetition = state.competitions.find(c => c.id === compId);
+            state.userInfo = {
+                ...state.userInfo,
+                competition: state.currentCompetition.name,
+                compId: compId,
+                name: document.getElementById('reg-name').value,
+                school: document.getElementById('reg-school').value,
+                className: document.getElementById('reg-class').value
+            };
+
+            const savedData = checkSavedProgress(compId, state.userInfo.studentId);
+            
+            if (savedData) {
+                // 恢复进度
+                state.questions = savedData.questions;
+                state.currentQIndex = savedData.currentQIndex;
+                state.answers = savedData.answers;
+                state.elapsedSeconds = savedData.elapsedSeconds;
+                startQuizTimer();
+                showView('quiz');
+                renderQuestion();
+            } else {
+                // 新建比赛
+                showLoading("正在准备试卷...", "Menyediakan soalan...");
+                const res = await apiCall('getQuestions', { compId: compId });
+                if (res.success && res.data.length > 0) {
+                    // 打乱题目顺序并打乱选项
+                    let qs = res.data;
+                    qs.sort(() => Math.random() - 0.5);
+                    state.questions = qs.map(q => shuffleOptions(q));
+                    
+                    document.getElementById('inst-title').innerText = state.currentCompetition.name;
+                    document.getElementById('inst-count').innerText = state.questions.length;
+                    showView('instructions');
+                } else {
+                    showModal("Error", "题库加载失败", "error");
+                    showView('register');
+                }
+            }
+            document.getElementById('lang-toggle-container').classList.add('hidden');
+        });
+
+        // 开始答题
+        document.getElementById('btn-start-quiz').addEventListener('click', () => {
+            state.currentQIndex = 0; state.answers = []; state.elapsedSeconds = 0;
+            startQuizTimer();
+            // 新增：进入考试时，启动防刷新误触
+            window.addEventListener('beforeunload', preventReload);
+            
+            // 新增：强制进入全屏模式
+            const elem = document.documentElement;
+            try {
+                if (elem.requestFullscreen) {
+                    elem.requestFullscreen().catch(err => console.warn("Fullscreen API is disallowed by permissions policy."));
+                } else if (elem.webkitRequestFullscreen) {
+                    elem.webkitRequestFullscreen();
+                }
+            } catch (e) {
+                console.warn("Fullscreen API error:", e);
+            }
+
+            showView('quiz');
+            renderQuestion();
+        });
+
+        function startQuizTimer() {
+            document.getElementById('quiz-header-comp-name').innerText = state.currentCompetition.name;
+            state.startTime = Date.now();
+            if(state.timerInterval) clearInterval(state.timerInterval);
+            state.timerInterval = setInterval(() => {
+                state.elapsedSeconds++;
+                document.getElementById('quiz-timer').innerText = formatTime(state.elapsedSeconds);
+                if(state.elapsedSeconds % 2 === 0) saveProgress(); // 每2秒保存一次进度
+            }, 1000);
+        }
+
+        // 渲染题目
+        function renderQuestion() {
+            const q = state.questions[state.currentQIndex];
+            const progressPct = ((state.currentQIndex) / state.questions.length) * 100;
+            document.getElementById('quiz-progress-bar').style.width = `${progressPct}%`;
+            updateDynamicText();
+            
+            document.getElementById('question-text').innerText = `${state.currentQIndex + 1}. ${q.text}`;
+            
+            // 新增：处理图片题的显示与隐藏
+            const imgContainer = document.getElementById('question-image-container');
+            const imgEl = document.getElementById('question-image');
+            if (q.imageUrl) {
+                imgEl.src = q.imageUrl;
+                imgContainer.classList.remove('hidden');
+            } else {
+                imgContainer.classList.add('hidden');
+                imgEl.src = '';
+            }
+            
+            const container = document.getElementById('options-container');
+            container.innerHTML = '';
+            
+            const btnNext = document.getElementById('btn-next-question');
+            btnNext.disabled = true;
+            
+            if (state.currentQIndex === state.questions.length - 1) {
+                btnNext.innerHTML = `<span class="lang-zh">提交试卷</span><span class="lang-ms">Hantar</span> <i class="fas fa-check ml-1"></i>`;
+            } else {
+                btnNext.innerHTML = `<span class="lang-zh">下一题</span><span class="lang-ms">Seterusnya</span> <i class="fas fa-chevron-right ml-1"></i>`;
+            }
+            
+            const labels = ['A', 'B', 'C', 'D'];
+            q.options.forEach((optText, index) => {
+                const btn = document.createElement('button');
+                btn.className = `option-btn w-full text-left p-4 rounded-xl border-2 border-gray-200 hover:border-blue-300 hover:bg-blue-50 bg-white font-medium text-gray-700 flex items-center gap-4`;
+                btn.innerHTML = `<span class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-gray-100 text-gray-600 font-bold text-sm">${labels[index]}</span> <span>${optText}</span>`;
+                
+                // 恢复已选状态
+                if(state.answers[state.currentQIndex] === index) {
+                    btn.classList.add('selected-option');
+                    btnNext.disabled = false;
+                }
+
+                btn.onclick = () => {
+                    document.querySelectorAll('.option-btn').forEach(b => b.classList.remove('selected-option'));
+                    btn.classList.add('selected-option');
+                    state.answers[state.currentQIndex] = index;
+                    btnNext.disabled = false;
+                    saveProgress(); // 选完立即保存
+                };
+                container.appendChild(btn);
+            });
+        }
+
+        // 下一题 / 提交拦截
+        document.getElementById('btn-next-question').addEventListener('click', () => {
+            if (state.currentQIndex < state.questions.length - 1) {
+                state.currentQIndex++;
+                renderQuestion();
+            } else {
+                // 最后一题，弹出确认框
+                showModal(
+                    state.isMs ? "Pengesahan" : "确认交卷",
+                    state.isMs ? "Adakah anda pasti untuk menghantar jawapan? Tidak boleh diubah selepas ini." : "您确定要交卷吗？交卷后将无法修改答案。",
+                    'info',
+                    submitQuiz,
+                    true, // Show Cancel
+                    state.isMs ? "Hantar" : "确定交卷"
+                );
+            }
+        });
+
+        // 提交逻辑
+        async function submitQuiz() {
+            clearInterval(state.timerInterval);
+            // 新增：提交成绩时，解除防刷新拦截
+            window.removeEventListener('beforeunload', preventReload);
+            
+            // 新增：交卷后退出全屏模式
+            try {
+                if (document.fullscreenElement || document.webkitFullscreenElement) {
+                    if (document.exitFullscreen) {
+                        document.exitFullscreen().catch(err => console.warn("Error exiting fullscreen: ", err));
+                    }
+                    else if (document.webkitExitFullscreen) {
+                        document.webkitExitFullscreen();
+                    }
+                }
+            } catch (e) {
+                console.warn("Fullscreen API error:", e);
+            }
+
+            showLoading("正在批改...", "Sedang menyemak...");
+            
+            let correctCount = 0;
+            state.questions.forEach((q, idx) => { if (state.answers[idx] === q.answerIndex) correctCount++; });
+            state.score = Math.round((correctCount / state.questions.length) * 100);
+            
+            const payload = { userInfo: state.userInfo, score: state.score, timeTaken: state.elapsedSeconds, details: state.answers };
+            const res = await apiCall('submit', payload);
+            
+            if(!res.success) {
+                if(res.error === "Duplicate") {
+                    showModal(state.isMs?"Ralat":"提交失败", state.isMs?"Anda telah mengambil ujian ini.":"系统检测到您已完成过此场比赛，请勿重复提交。", "error");
+                    clearProgress();
+                    setTimeout(() => location.reload(), 3000);
+                    return;
+                }
+                showModal("Error", res.error, "error");
+                return;
+            }
+
+            clearProgress(); // 清除本地缓存
+            
+            // 渲染成绩单
+            document.getElementById('res-score').innerText = state.score;
+            document.getElementById('res-accuracy').innerText = Math.round((correctCount / state.questions.length) * 100) + '%';
+            document.getElementById('res-time').innerText = formatTime(state.elapsedSeconds);
+            
+            // 决定是否显示得分和准确率
+            if (state.currentCompetition.allowScore !== false) {
+                document.getElementById('score-card-container').classList.remove('hidden');
+                document.getElementById('accuracy-card-container').classList.remove('hidden');
+            } else {
+                document.getElementById('score-card-container').classList.add('hidden');
+                document.getElementById('accuracy-card-container').classList.add('hidden');
+            }
+
+            // 决定是否显示排名和排行榜
+            if (state.currentCompetition.allowRanking) {
+                document.getElementById('rank-card-container').classList.remove('hidden');
+                document.getElementById('leaderboard-section-container').classList.remove('hidden');
+                document.getElementById('res-rank').innerText = state.isMs ? `No. ${res.rank}` : `第 ${res.rank} 名`;
+                await loadLeaderboard();
+            } else {
+                document.getElementById('rank-card-container').classList.add('hidden');
+                document.getElementById('leaderboard-section-container').classList.add('hidden');
+            }
+            
+            // 决定是否发奖状 (80分及格线 且 老师开启了此功能)
+            if(state.score >= 80 && state.currentCompetition.allowCert) {
+                document.getElementById('cert-btn-container').classList.remove('hidden');
+                // 新增：撒花特效 (Confetti) 增强游戏化体验
+                setTimeout(() => {
+                    confetti({
+                        particleCount: 150,
+                        spread: 70,
+                        origin: { y: 0.6 },
+                        colors: ['#facc15', '#f97316', '#3b82f6', '#10b981']
+                    });
+                }, 500);
+            } else {
+                document.getElementById('cert-btn-container').classList.add('hidden');
+            }
+
+            // 决定是否显示考卷回顾
+            if (state.currentCompetition.allowReview) {
+                document.getElementById('review-section-container').classList.remove('hidden');
+                renderReview();
+            } else {
+                document.getElementById('review-section-container').classList.add('hidden');
+            }
+
+            showView('result');
+        }
+
+        // 考卷回顾生成
+        function renderReview() {
+            const container = document.getElementById('review-content');
+            container.innerHTML = '';
+            const labels = ['A', 'B', 'C', 'D'];
+            
+            state.questions.forEach((q, i) => {
+                const userAnsIdx = state.answers[i];
+                const isCorrect = userAnsIdx === q.answerIndex;
+                
+                const div = document.createElement('div');
+                div.className = "py-4";
+                div.innerHTML = `
+                    <p class="font-medium text-gray-800 mb-2">${i+1}. ${q.text}</p>
+                    <div class="text-sm space-y-1">
+                        <p class="${isCorrect ? 'text-green-600 font-bold' : 'text-red-500'}">
+                            ${state.isMs ? 'Jawapan Anda:' : '您的回答：'} ${userAnsIdx !== undefined ? labels[userAnsIdx] + '. ' + q.options[userAnsIdx] : '未作答'}
+                            ${isCorrect ? '<i class="fas fa-check ml-1"></i>' : '<i class="fas fa-times ml-1"></i>'}
+                        </p>
+                        ${!isCorrect ? `<p class="text-green-600 mt-1">${state.isMs ? 'Jawapan Betul:' : '正确答案：'} ${labels[q.answerIndex]}. ${q.options[q.answerIndex]}</p>` : ''}
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        // 回顾区 Toggle
+        document.getElementById('toggle-review').addEventListener('click', () => {
+            const content = document.getElementById('review-content');
+            const icon = document.getElementById('review-icon');
+            content.classList.toggle('hidden');
+            icon.classList.toggle('rotate-180');
+        });
+
+        // 奖状生成 (使用 html2canvas)
+        document.getElementById('btn-download-cert').addEventListener('click', async () => {
+            const btn = document.getElementById('btn-download-cert');
+            const ogText = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Generating...';
+            
+            // 填入数据
+            document.getElementById('cert-name').innerText = state.userInfo.name;
+            document.getElementById('cert-comp-name').innerText = state.userInfo.competition;
+            document.getElementById('cert-score').innerText = state.score + "%";
+            document.getElementById('cert-date').innerText = "Tarikh: " + new Date().toLocaleDateString('ms-MY');
+
+            const certElement = document.getElementById('certificate-template');
+            
+            try {
+                const canvas = await html2canvas(certElement, { scale: 2 });
+                const link = document.createElement('a');
+                link.download = `Sijil_${state.userInfo.name}_${state.score}.png`;
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+            } catch (err) {
+                showModal("Error", "生成奖状失败，请稍后再试。", "error");
+            }
+            btn.innerHTML = ogText;
+        });
+
+        // 排行榜加载
+        async function loadLeaderboard() {
+            const res = await apiCall('getLeaderboard', { compId: state.userInfo.compId });
+            const tbody = document.getElementById('leaderboard-body');
+            tbody.innerHTML = '';
+            
+            if (res.success && res.data.length > 0) {
+                res.data.forEach((row, idx) => {
+                    let rankBadge = `<span class="font-bold text-gray-500">${idx + 1}</span>`;
+                    if(idx===0) rankBadge = `<i class="fas fa-medal text-yellow-500 text-xl"></i>`;
+                    if(idx===1) rankBadge = `<i class="fas fa-medal text-gray-400 text-xl"></i>`;
+                    if(idx===2) rankBadge = `<i class="fas fa-medal text-orange-600 text-xl"></i>`;
+
+                    const tr = document.createElement('tr');
+                    if(row.name === state.userInfo.name) tr.className = "bg-blue-50 font-bold text-blue-900";
+                    tr.innerHTML = `<td class="py-2 px-4">${rankBadge}</td><td class="py-2 px-4">${row.name}</td><td class="py-2 px-4 text-green-600">${row.score}</td><td class="py-2 px-4 text-gray-500">${row.time}</td>`;
+                    tbody.appendChild(tr);
+                });
+            }
+        }
+        document.getElementById('btn-refresh-leaderboard').addEventListener('click', loadLeaderboard);
+
+    </script>
+</body>
+</html>
