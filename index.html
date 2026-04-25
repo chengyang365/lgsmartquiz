@@ -4,10 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>新廊华小智能问答系统</title>
-        <!-- Favicon -->
     <link rel="icon" type="image/png" sizes="32x32" href="https://cdn-icons-png.flaticon.com/512/7128/7128236.png">
     <link rel="icon" type="image/png" sizes="192x192" href="https://cdn-icons-png.flaticon.com/512/7128/7128236.png">
     <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/7128/7128236.png">
+
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -626,7 +626,10 @@
 
         // ================= API & Mock Data =================
         const mockData = {
-            students: { "1A01": { name: "一年级新生", className: "1A" }, "6B01": { name: "六年级学长", className: "6B" } },
+            students: { 
+                "1A01": { name: "一年级新生", className: "1A", completedComps: ["C001"] }, // 模拟 1A01 已经完成了 C001
+                "6B01": { name: "六年级学长", className: "6B", completedComps: [] } 
+            },
             competitions: [
                 { id: "C001", name: "2026年全柔华小常识比赛 (全校)", startTime: null, endTime: null, allowReview: true, allowCert: true, allowRanking: true, allowScore: true, timeLimit: 30, themeColor: "blue", allowTranslation: true, allowMultiple: false, allowedClasses: "" },
                 { id: "C002", name: "[测试] 一年级拼音赛 (限1年级)", startTime: null, endTime: null, allowReview: true, allowCert: true, allowRanking: true, allowScore: true, timeLimit: 5, themeColor: "green", allowTranslation: false, allowMultiple: true, allowedClasses: "1" },
@@ -708,8 +711,12 @@
                 
                 msgEl.innerHTML = `<i class="fas fa-check-circle mr-1"></i> 验证成功 / Disahkan`;
                 msgEl.className = "text-sm mt-3 text-green-600 font-bold block";
-                state.userInfo.isVerified = true; state.userInfo.studentId = studentId;
+                state.userInfo.isVerified = true; 
+                state.userInfo.studentId = studentId;
                 state.userInfo.className = res.data.className;
+                
+                // 记录该学生已经完成的比赛ID
+                state.userInfo.completedComps = res.data.completedComps || [];
 
                 const select = document.getElementById('reg-competition');
                 select.innerHTML = `<option value="">请选择作答项目... / Pilih Modul...</option>`;
@@ -733,6 +740,8 @@
                 }
 
                 let availableComps = 0;
+                let totalAllowedComps = 0;
+
                 state.competitions.forEach(c => {
                     let isAllowed = true;
                     if (c.allowedClasses) {
@@ -742,13 +751,29 @@
                         isAllowed = allowedArr.includes(studentClassUpper) || (studentGrade && allowedArr.includes(studentGrade));
                     }
                     if (isAllowed) {
-                        select.add(new Option(c.name, c.id));
-                        availableComps++;
+                        totalAllowedComps++;
+                        
+                        // 检查是否该项目不允许重复，且学生已经完成过
+                        const isCompleted = !c.allowMultiple && state.userInfo.completedComps.includes(c.id);
+                        
+                        const opt = new Option(c.name + (isCompleted ? " [您已完成过此场比赛 / Selesai]" : ""), c.id);
+                        if (isCompleted) {
+                            opt.disabled = true;
+                            opt.className = "text-gray-400 bg-gray-50 italic"; // 给已完成的选项加上变灰样式
+                        } else {
+                            availableComps++;
+                        }
+                        select.add(opt);
                     }
                 });
 
                 if (availableComps > 0) {
                     select.disabled = false; select.classList.remove('bg-gray-50', 'cursor-not-allowed', 'text-gray-500'); select.classList.add('bg-white', 'text-primary-900', 'cursor-pointer', 'shadow-md');
+                } else if (totalAllowedComps > 0) {
+                    // 虽然有被分配的项目，但是都已经考过了
+                    select.disabled = false; 
+                    select.classList.remove('bg-gray-50', 'cursor-not-allowed', 'text-gray-500'); select.classList.add('bg-white', 'text-primary-900', 'cursor-pointer', 'shadow-md');
+                    select.options[0].text = "适合您的所有项目均已完成 / Semua Telah Selesai";
                 } else {
                     select.disabled = true; 
                     // 4. 显示当前学生的班级，方便老师直接排错
@@ -1073,6 +1098,7 @@
             
             if(!res.success) {
                 if(res.error === "Duplicate") {
+                    // 后端拦截提示（以防万一）
                     showModal("提交失败 / Ralat", "系统检测到您已完成过此场比赛，请勿重复提交。<br>Anda telah mengambil ujian ini.", "error");
                     clearProgress(); setTimeout(() => location.reload(), 3000); return;
                 }
