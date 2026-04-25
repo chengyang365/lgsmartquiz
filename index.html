@@ -366,7 +366,13 @@
                         <div id="result-icon" class="inline-block p-4 rounded-full bg-green-100 mb-4">
                             <i class="fas fa-trophy text-5xl text-yellow-500"></i>
                         </div>
-                        <h2 class="text-3xl font-bold text-gray-800 mb-2" id="result-title">交卷成功！<br><span class="text-xl">Ujian Dihantar!</span></h2>
+                        <h2 class="text-3xl font-bold text-gray-800 mb-3" id="result-title">交卷成功！<br><span class="text-xl">Ujian Dihantar!</span></h2>
+                        
+                        <!-- 新增：交卷身份证明徽章 -->
+                        <div class="bg-gray-50 inline-block px-6 py-2.5 rounded-full mb-5 border border-gray-200 shadow-inner">
+                            <span class="text-gray-700 font-bold text-lg" id="res-student-info">加载中...</span>
+                        </div>
+
                         <p class="text-gray-500">感谢您的参与，您的成绩已记录在案。</p>
                         
                         <div id="cert-btn-container" class="mt-4 hidden">
@@ -377,20 +383,21 @@
                         </div>
                     </div>
 
-                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-                        <div id="score-card-container" class="bg-primary-50 p-4 rounded-xl text-center border border-primary-50 transition-colors duration-500">
+                    <!-- 优化：改为 Flex 居中布局，确保卡片数量变动时始终居中 -->
+                    <div class="flex flex-wrap justify-center gap-3 md:gap-4 mb-8">
+                        <div id="score-card-container" class="w-36 md:w-40 bg-primary-50 p-4 rounded-xl text-center border border-primary-50 transition-colors duration-500">
                             <p class="text-sm text-primary-600 font-medium mb-1 transition-colors duration-500">得分 / Markah</p>
                             <p class="text-2xl font-bold text-primary-700 transition-colors duration-500" id="res-score">--</p>
                         </div>
-                        <div id="accuracy-card-container" class="bg-green-50 p-4 rounded-xl text-center border border-green-100">
+                        <div id="accuracy-card-container" class="w-36 md:w-40 bg-green-50 p-4 rounded-xl text-center border border-green-100">
                             <p class="text-sm text-green-500 font-medium mb-1">准确率 / Ketepatan</p>
                             <p class="text-2xl font-bold text-green-700" id="res-accuracy">--%</p>
                         </div>
-                        <div class="bg-purple-50 p-4 rounded-xl text-center border border-purple-100">
+                        <div class="w-36 md:w-40 bg-purple-50 p-4 rounded-xl text-center border border-purple-100">
                             <p class="text-sm text-purple-500 font-medium mb-1">用时 / Masa</p>
                             <p class="text-2xl font-bold text-purple-700" id="res-time">--</p>
                         </div>
-                        <div id="rank-card-container" class="bg-orange-50 p-4 rounded-xl text-center border border-orange-100">
+                        <div id="rank-card-container" class="w-36 md:w-40 bg-orange-50 p-4 rounded-xl text-center border border-orange-100">
                             <p class="text-sm text-orange-500 font-medium mb-1">排名 / Kedudukan</p>
                             <p class="text-2xl font-bold text-orange-700" id="res-rank">计算中...</p>
                         </div>
@@ -703,16 +710,30 @@
                 const select = document.getElementById('reg-competition');
                 select.innerHTML = `<option value="">请选择作答项目... / Pilih Modul...</option>`;
                 
-                // 根据班级进行项目筛选
-                const studentClassUpper = state.userInfo.className.toUpperCase();
+                // 根据班级进行智能项目筛选
+                const studentClassUpper = state.userInfo.className ? state.userInfo.className.toString().toUpperCase() : "";
+                
+                // 1. 智能提取年级 (支持提取阿拉伯数字，例如 "6B" -> "6")
                 const studentGradeMatch = studentClassUpper.match(/[0-9]+/); 
-                const studentGrade = studentGradeMatch ? studentGradeMatch[0] : "";
+                let studentGrade = studentGradeMatch ? studentGradeMatch[0] : "";
+                
+                // 2. 智能提取中文年级 (支持纯中文填写，例如 "六年级" -> "6")
+                if (!studentGrade) {
+                    const cnNumMap = {"一":"1", "二":"2", "三":"3", "四":"4", "五":"5", "六":"6"};
+                    for(let key in cnNumMap) {
+                        if(studentClassUpper.includes(key)) {
+                            studentGrade = cnNumMap[key];
+                            break;
+                        }
+                    }
+                }
 
                 let availableComps = 0;
                 state.competitions.forEach(c => {
                     let isAllowed = true;
                     if (c.allowedClasses) {
-                        const allowedArr = c.allowedClasses.toUpperCase().split(',').map(s => s.trim());
+                        // 3. 完美兼容中英文逗号与顿号，并去除多余空格
+                        const allowedArr = c.allowedClasses.toString().toUpperCase().split(/[,，、]/).map(s => s.trim());
                         // 匹配确切的班级 (如 6B) 或者匹配年级数字 (如 6)
                         isAllowed = allowedArr.includes(studentClassUpper) || (studentGrade && allowedArr.includes(studentGrade));
                     }
@@ -725,7 +746,9 @@
                 if (availableComps > 0) {
                     select.disabled = false; select.classList.remove('bg-gray-50', 'cursor-not-allowed', 'text-gray-500'); select.classList.add('bg-white', 'text-primary-900', 'cursor-pointer', 'shadow-md');
                 } else {
-                    select.disabled = true; select.innerHTML = `<option value="">当前没有适合您的项目 / Tiada modul untuk anda</option>`;
+                    select.disabled = true; 
+                    // 4. 显示当前学生的班级，方便老师直接排错
+                    select.innerHTML = `<option value="">无适合项目 (您的班级: ${state.userInfo.className || '未填'}) / Tiada Modul</option>`;
                 }
 
                 select.addEventListener('change', () => {
@@ -1057,6 +1080,9 @@
             document.getElementById('res-score').innerText = state.score;
             document.getElementById('res-accuracy').innerText = Math.round((correctCount / state.questions.length) * 100) + '%';
             document.getElementById('res-time').innerText = formatTime(state.elapsedSeconds);
+            
+            // 新增：向交卷证明徽章填入姓名与班级信息
+            document.getElementById('res-student-info').innerHTML = `<i class="fas fa-user-check text-green-600 mr-2"></i>${state.userInfo.name} <span class="mx-2 text-gray-300">|</span> ${state.userInfo.className}`;
             
             if (state.currentCompetition.allowScore !== false) {
                 document.getElementById('score-card-container').classList.remove('hidden'); document.getElementById('accuracy-card-container').classList.remove('hidden');
