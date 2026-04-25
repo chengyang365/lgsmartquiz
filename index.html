@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>新廊华小智能问答系统</title>
-    <!-- 配置 Tailwind 动态主题色 -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -12,10 +11,16 @@
                 extend: {
                     colors: {
                         primary: {
-                            50: 'var(--primary-bg)',
-                            400: 'var(--primary-light)',
-                            600: 'var(--primary)',
-                            700: 'var(--primary-dark)'
+                            50: 'var(--p-50)',
+                            100: 'var(--p-100)',
+                            200: 'var(--p-200)',
+                            300: 'var(--p-300)',
+                            400: 'var(--p-400)',
+                            500: 'var(--p-500)',
+                            600: 'var(--p-600)',
+                            700: 'var(--p-700)',
+                            800: 'var(--p-800)',
+                            900: 'var(--p-900)'
                         }
                     }
                 }
@@ -26,19 +31,18 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <style>
-        /* 动态主题 CSS 变量 */
-        :root, .theme-blue { --primary-bg: #eff6ff; --primary-light: #60a5fa; --primary: #2563eb; --primary-dark: #1d4ed8; }
-        .theme-green { --primary-bg: #f0fdf4; --primary-light: #4ade80; --primary: #16a34a; --primary-dark: #15803d; }
-        .theme-purple { --primary-bg: #faf5ff; --primary-light: #c084fc; --primary: #9333ea; --primary-dark: #7e22ce; }
-        .theme-red { --primary-bg: #fef2f2; --primary-light: #f87171; --primary: #dc2626; --primary-dark: #b91c1c; }
-        .theme-orange { --primary-bg: #fff7ed; --primary-light: #fb923c; --primary: #ea580c; --primary-dark: #c2410c; }
-        .theme-teal { --primary-bg: #f0fdfa; --primary-light: #2dd4bf; --primary: #0d9488; --primary-dark: #0f766e; }
+        :root, .theme-blue { --p-50: #eff6ff; --p-100: #dbeafe; --p-200: #bfdbfe; --p-300: #93c5fd; --p-400: #60a5fa; --p-500: #3b82f6; --p-600: #2563eb; --p-700: #1d4ed8; --p-800: #1e40af; --p-900: #1e3a8a; }
+        .theme-green { --p-50: #f0fdf4; --p-100: #dcfce7; --p-200: #bbf7d0; --p-300: #86efac; --p-400: #4ade80; --p-500: #22c55e; --p-600: #16a34a; --p-700: #15803d; --p-800: #166534; --p-900: #14532d; }
+        .theme-purple { --p-50: #faf5ff; --p-100: #f3e8ff; --p-200: #e9d5ff; --p-300: #d8b4fe; --p-400: #c084fc; --p-500: #a855f7; --p-600: #9333ea; --p-700: #7e22ce; --p-800: #6b21a8; --p-900: #581c87; }
+        .theme-red { --p-50: #fef2f2; --p-100: #fee2e2; --p-200: #fecaca; --p-300: #fca5a5; --p-400: #f87171; --p-500: #ef4444; --p-600: #dc2626; --p-700: #b91c1c; --p-800: #991b1b; --p-900: #7f1d1d; }
+        .theme-orange { --p-50: #fff7ed; --p-100: #ffedd5; --p-200: #fed7aa; --p-300: #fdba74; --p-400: #fb923c; --p-500: #f97316; --p-600: #ea580c; --p-700: #c2410c; --p-800: #9a3412; --p-900: #7c2d12; }
+        .theme-teal { --p-50: #f0fdfa; --p-100: #ccfbf1; --p-200: #99f6e4; --p-300: #5eead4; --p-400: #2dd4bf; --p-500: #14b8a6; --p-600: #0d9488; --p-700: #0f766e; --p-800: #115e59; --p-900: #134e4a; }
 
         .fade-in { animation: fadeIn 0.3s ease-in-out; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         .option-btn { transition: all 0.2s; }
         .option-btn:hover:not(:disabled) { transform: scale(1.02); }
-        .selected-option { background-color: var(--primary) !important; color: white !important; border-color: var(--primary-dark) !important; }
+        .selected-option { background-color: var(--p-600) !important; color: white !important; border-color: var(--p-700) !important; }
         .no-select { user-select: none; -webkit-user-select: none; }
         :root { --zoom: 1; }
         .dynamic-text { font-size: calc(1rem * var(--zoom)); line-height: 1.5; }
@@ -47,9 +51,11 @@
 </head>
 <body class="bg-slate-50 text-slate-800 font-sans antialiased min-h-screen flex flex-col no-select theme-blue" oncontextmenu="return false;">
 
-    <!-- 进入系统前的引导全屏大门 -->
-    <div id="fullscreen-overlay" class="fixed inset-0 z-[300] bg-primary-700 flex flex-col items-center justify-center text-white">
-        <i class="fas fa-expand text-7xl mb-8 text-primary-400 animate-pulse"></i>
+    <!-- 进入系统大门 -->
+    <div id="fullscreen-overlay" class="fixed inset-0 z-[300] bg-gradient-to-br from-primary-800 to-primary-600 flex flex-col items-center justify-center text-white">
+        <div class="bg-white/10 p-8 rounded-full mb-8 shadow-[0_0_40px_rgba(0,0,0,0.2)] backdrop-blur-sm border border-white/20">
+            <i class="fas fa-expand text-6xl text-white animate-pulse"></i>
+        </div>
         <h1 class="text-3xl md:text-5xl font-extrabold mb-4 tracking-wider text-center px-4 drop-shadow-lg">新廊华小智能问答系统</h1>
         <p class="text-white/80 mb-12 text-center text-lg font-medium tracking-wide">系统必须在全屏模式下运行。<br><span class="font-normal opacity-75">Sistem mesti dijalankan dalam Mod Skrin Penuh.</span></p>
         <button id="btn-enter-fullscreen" disabled class="bg-white/30 text-white font-bold py-4 px-12 rounded-full shadow-lg text-xl flex items-center flex-col cursor-wait backdrop-blur-sm transition-all duration-300">
@@ -58,7 +64,7 @@
         </button>
     </div>
 
-    <!-- 退出全屏时的密码锁死层 -->
+    <!-- 锁定层 -->
     <div id="lockdown-overlay" class="hidden fixed inset-0 z-[400] bg-red-900 flex flex-col items-center justify-center text-white backdrop-blur-md">
         <i class="fas fa-lock text-7xl mb-6 text-red-400"></i>
         <h2 class="text-4xl font-bold mb-4">系统已锁死 / Sistem Dikunci</h2>
@@ -78,7 +84,7 @@
         </div>
     </div>
 
-    <!-- 全局弹窗 (Modal) -->
+    <!-- Modal -->
     <div id="custom-modal" class="hidden fixed inset-0 bg-black/60 z-50 flex items-center justify-center fade-in backdrop-blur-sm p-4">
         <div class="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl">
             <div id="modal-icon" class="text-center text-4xl mb-4 text-orange-500"><i class="fas fa-exclamation-triangle"></i></div>
@@ -91,9 +97,8 @@
         </div>
     </div>
 
-    <!-- 顶部导航 -->
+    <!-- Header -->
     <header class="bg-primary-600 text-white shadow-md relative z-20 transition-colors duration-500">
-        <!-- 顶部系统栏 (包含时钟与字体调节) -->
         <div class="bg-primary-700 text-white/90 text-xs py-1.5 px-4 flex justify-between items-center transition-colors duration-500">
             <div class="flex items-center gap-2">
                 <i class="far fa-clock"></i>
@@ -106,106 +111,97 @@
                 <button id="btn-font-inc" class="px-2 py-1 hover:text-yellow-300 text-sm font-bold transition-colors" title="放大字体">A+</button>
             </div>
         </div>
-        
         <div class="max-w-4xl mx-auto px-4 py-3 flex flex-col md:flex-row md:justify-between md:items-center gap-3">
-            <!-- 带有正方形校徽占位符的标题区 -->
             <div class="flex items-center gap-3">
-                <div class="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center flex-shrink-0 border border-white/30 overflow-hidden shadow-sm">
-                    <i class="fas fa-school text-2xl opacity-90"></i>
-                    <!-- 若有真实的校徽图片，请取消下面这行的注释并填入图片链接，同时删除上面的 <i> 标签 -->
-                    <!-- <img src="YOUR_LOGO_URL" alt="Logo" class="w-full h-full object-cover bg-white"> -->
+                <div class="w-12 h-12 md:w-14 md:h-14 flex items-center justify-center flex-shrink-0">
+                    <img src="https://raw.githubusercontent.com/chengyang365/ClassMovementLog/refs/heads/main/logo.png" alt="Logo" class="w-full h-full object-contain drop-shadow-md">
                 </div>
                 <div>
                     <h1 class="text-xl font-bold leading-tight">新廊华小智能问答系统</h1>
                     <div class="text-sm font-medium opacity-90 text-white/80 mt-1">Sistem Kuiz Pintar SJK (C) Ladang Grisek</div>
                 </div>
             </div>
-            <div class="flex items-center gap-4">
-                <!-- 用户信息 -->
-                <div id="header-user-info" class="hidden text-sm font-medium bg-black/20 px-3 py-1.5 rounded-full"></div>
-            </div>
         </div>
     </header>
 
-    <!-- 主体内容区 -->
     <main class="flex-grow flex items-center justify-center p-4">
         <div class="max-w-4xl w-full">
             
-            <!-- 视图 1：加载中 -->
             <div id="view-loading" class="text-center py-20 fade-in hidden">
                 <i class="fas fa-spinner fa-spin text-4xl text-primary-600 mb-4"></i>
-                <p class="text-lg text-slate-500 font-bold" id="loading-text">
-                    正在加载系统数据... <br>
-                    <span class="text-sm font-normal opacity-80">Sedang memuatkan data sistem...</span>
-                </p>
+                <p class="text-lg text-slate-500 font-bold" id="loading-text"></p>
             </div>
 
-            <!-- 视图 2：报名与比赛选择 -->
-            <div id="view-register" class="bg-white rounded-2xl shadow-xl overflow-hidden fade-in hidden">
-                <div class="bg-primary-50 p-6 border-b border-primary-50 transition-colors duration-500">
-                    <h2 class="text-2xl font-bold text-primary-700 text-center transition-colors duration-500">
+            <!-- View: Register -->
+            <div id="view-register" class="bg-white rounded-3xl shadow-2xl overflow-hidden fade-in hidden border border-gray-100">
+                <div class="bg-gradient-to-b from-primary-50 to-white p-8 border-b border-primary-100/50 transition-colors duration-500 relative overflow-hidden">
+                    <div class="absolute top-0 right-0 w-32 h-32 bg-primary-100 rounded-full blur-3xl opacity-50 -mr-10 -mt-10"></div>
+                    <div class="absolute bottom-0 left-0 w-24 h-24 bg-primary-200 rounded-full blur-2xl opacity-30 -ml-10 -mb-10"></div>
+                    <h2 class="text-3xl md:text-4xl font-extrabold text-primary-800 text-center transition-colors duration-500 tracking-wide relative z-10">
                         登记 / Pendaftaran
                     </h2>
                 </div>
-                <div class="p-8">
-                    <form id="register-form" class="space-y-6">
-                        <div class="bg-primary-50 p-5 rounded-xl border border-primary-50 shadow-inner transition-colors duration-500">
-                            <label class="block text-sm font-bold text-primary-700 mb-2 transition-colors duration-500">
-                                1. 请输入学号验证身份 / Sila masukkan ID Murid
+                <div class="p-8 md:p-10 relative z-10">
+                    <form id="register-form" class="space-y-8">
+                        <div class="bg-primary-50/60 p-6 rounded-2xl border border-primary-100 shadow-sm transition-all duration-500 hover:shadow-md">
+                            <label class="block text-sm md:text-base font-bold text-primary-800 mb-3 flex items-center transition-colors duration-500">
+                                <span class="bg-primary-600 text-white w-6 h-6 rounded-full inline-flex items-center justify-center mr-2 text-xs shadow-sm">1</span>
+                                请输入学号验证身份 / Sila masukkan ID Murid
                             </label>
-                            <div class="flex gap-3">
+                            <div class="flex flex-col md:flex-row gap-3">
                                 <div class="relative flex-grow">
-                                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                                         <i class="fas fa-id-card text-gray-400"></i>
                                     </div>
-                                    <input type="text" id="reg-student-id" required placeholder="例如 Cth: 20001" class="w-full pl-10 pr-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-primary-600 transition-colors">
+                                    <input type="text" id="reg-student-id" required placeholder="例如 Cth: 20001" class="w-full pl-12 pr-4 py-3.5 rounded-xl border border-gray-300 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all shadow-inner text-lg font-medium">
                                 </div>
-                                <button type="button" id="btn-verify-id" class="bg-primary-600 hover:bg-primary-700 text-white font-medium px-6 py-3 rounded-lg transition-colors shadow-sm whitespace-nowrap flex flex-col items-center justify-center leading-tight">
-                                    <span>验证</span><span class="text-xs">Sahkan</span>
+                                <button type="button" id="btn-verify-id" class="bg-primary-600 hover:bg-primary-700 text-white font-bold px-8 py-3.5 rounded-xl transition-all shadow-md hover:shadow-lg transform hover:-translate-y-0.5 whitespace-nowrap flex flex-col items-center justify-center leading-tight">
+                                    <span class="flex items-center"><i class="fas fa-search mr-1.5"></i>验证</span><span class="text-[11px] opacity-90">Sahkan</span>
                                 </button>
                             </div>
-                            <p id="verify-msg" class="text-sm mt-2 hidden"></p>
+                            <p id="verify-msg" class="text-sm mt-3 hidden"></p>
                         </div>
 
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 opacity-60 transition-opacity duration-300" id="student-info-section">
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">姓名 / Nama Penuh</label>
-                                <input type="text" id="reg-name" required readonly placeholder="验证学号后自动填写" class="w-full px-4 py-3 rounded-lg border border-gray-200 bg-gray-100 text-gray-600 cursor-not-allowed font-medium">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 opacity-50 transition-opacity duration-300" id="student-info-section">
+                            <div class="bg-gray-50 p-2 rounded-xl border border-gray-100 shadow-inner">
+                                <label class="block text-xs font-bold text-gray-500 mb-1 ml-2 mt-1 uppercase tracking-wider">姓名 / Nama</label>
+                                <input type="text" id="reg-name" required readonly placeholder="验证后自动填写" class="w-full px-4 py-2 rounded-lg bg-transparent text-gray-700 cursor-not-allowed font-bold text-lg focus:outline-none">
                             </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">班级 / Kelas</label>
-                                <input type="text" id="reg-class" required readonly placeholder="验证学号后自动填写" class="w-full px-4 py-3 rounded-lg border border-gray-200 bg-gray-100 text-gray-600 cursor-not-allowed font-medium">
+                            <div class="bg-gray-50 p-2 rounded-xl border border-gray-100 shadow-inner">
+                                <label class="block text-xs font-bold text-gray-500 mb-1 ml-2 mt-1 uppercase tracking-wider">班级 / Kelas</label>
+                                <input type="text" id="reg-class" required readonly placeholder="验证后自动填写" class="w-full px-4 py-2 rounded-lg bg-transparent text-gray-700 cursor-not-allowed font-bold text-lg focus:outline-none">
                             </div>
                             <div class="hidden"><input type="text" id="reg-school" value="SJK (C) Ladang Grisek"></div>
                         </div>
 
-                        <div class="border-t border-gray-100 pt-6">
-                            <label class="block text-sm font-bold text-gray-700 mb-2">
-                                2. 选择作答项目 / Pilih Modul
+                        <div class="border-t border-gray-100 pt-8">
+                            <label class="block text-sm md:text-base font-bold text-gray-800 mb-3 flex items-center">
+                                <span class="bg-gray-800 text-white w-6 h-6 rounded-full inline-flex items-center justify-center mr-2 text-xs shadow-sm">2</span>
+                                选择作答项目 / Pilih Modul
                             </label>
-                            <select id="reg-competition" required disabled class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-primary-600 bg-gray-100 cursor-not-allowed transition-colors">
+                            <select id="reg-competition" required disabled class="w-full px-4 py-4 rounded-xl border border-gray-300 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-gray-50 cursor-not-allowed transition-all shadow-sm text-base font-medium appearance-none">
                                 <option value="">请先验证学号... / Sila sahkan ID dahulu...</option>
                             </select>
-                            <p id="comp-time-msg" class="hidden mt-2"></p>
+                            <p id="comp-time-msg" class="hidden mt-3"></p>
                         </div>
 
-                        <div id="resume-alert" class="hidden bg-yellow-50 border border-yellow-200 text-yellow-800 px-4 py-3 rounded-lg flex items-center">
-                            <i class="fas fa-history mr-2 text-xl"></i>
-                            <span class="text-sm">
-                                检测到您之前有未完成的比赛，点击进入将自动恢复进度。<br>
-                                <span class="opacity-80">Rekod belum selesai dikesan, klik untuk menyambung.</span>
+                        <div id="resume-alert" class="hidden bg-yellow-50 border border-yellow-200 text-yellow-800 px-5 py-4 rounded-xl flex items-center shadow-sm">
+                            <i class="fas fa-history mr-3 text-2xl text-yellow-500"></i>
+                            <span class="text-sm font-medium">
+                                检测到您有未完成的作答记录，点击进入将自动恢复进度。<br>
+                                <span class="opacity-75 font-normal">Rekod belum selesai dikesan, klik untuk menyambung.</span>
                             </span>
                         </div>
 
-                        <button type="submit" id="btn-submit-reg" disabled class="w-full bg-gray-400 text-white font-bold py-3 px-4 rounded-xl transition-all shadow-md mt-4 text-lg cursor-not-allowed flex flex-col items-center justify-center">
-                            <span>确认进入比赛 <i class="fas fa-arrow-right ml-1"></i></span>
-                            <span class="text-sm font-normal opacity-90">Sahkan Identiti & Mula</span>
+                        <button type="submit" id="btn-submit-reg" disabled class="w-full bg-gray-300 text-gray-500 font-bold py-4 px-4 rounded-xl transition-all mt-6 text-lg cursor-not-allowed flex flex-col items-center justify-center shadow-sm">
+                            <span class="flex items-center">确认进入 <i class="fas fa-arrow-right ml-2"></i></span>
+                            <span class="text-xs font-normal opacity-80 mt-0.5">Sahkan Identiti & Mula</span>
                         </button>
                     </form>
                 </div>
             </div>
 
-            <!-- 视图 3：赛前说明 -->
+            <!-- View: Instructions -->
             <div id="view-instructions" class="bg-white rounded-2xl shadow-xl overflow-hidden fade-in hidden">
                 <div class="p-8 text-center">
                     <i class="fas fa-clipboard-list text-5xl text-primary-600 mb-4 transition-colors duration-500"></i>
@@ -213,15 +209,11 @@
                     <div class="bg-gray-50 rounded-lg p-6 text-left mb-6 text-gray-700 space-y-4">
                         <p class="flex items-start">
                             <i class="fas fa-list-ol text-primary-600 mt-1 mr-3 transition-colors"></i>
-                            <span>
-                                <strong>题目数量 / Jumlah soalan:</strong> <span id="inst-count" class="font-bold text-primary-600 text-lg transition-colors">--</span> 题 (MCQ)
-                            </span>
+                            <span><strong>题目数量 / Jumlah soalan:</strong> <span id="inst-count" class="font-bold text-primary-600 text-lg transition-colors">--</span> 题 (MCQ)</span>
                         </p>
                         <p class="flex items-start">
                             <i class="fas fa-hourglass-half text-orange-500 mt-1 mr-3"></i> 
-                            <span>
-                                <strong>考试时间 / Masa Ujian:</strong> <span id="inst-time-limit" class="font-bold text-orange-600">--</span>
-                            </span>
+                            <span><strong>考试时间 / Masa Ujian:</strong> <span id="inst-time-limit" class="font-bold text-orange-600">--</span></span>
                         </p>
                         <p class="flex items-start">
                             <i class="fas fa-tools text-purple-500 mt-1 mr-3"></i> 
@@ -238,17 +230,20 @@
                             </span>
                         </p>
                     </div>
-                    <button id="btn-start-quiz" class="bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-8 rounded-full transition-colors shadow-lg text-lg flex items-center justify-center mx-auto gap-2">
+                    <button id="btn-start-quiz" class="bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-8 rounded-full transition-colors shadow-lg text-lg flex items-center justify-center mx-auto gap-2 transform hover:-translate-y-1">
                         <span>开始答题 <br><span class="text-sm font-normal">Mula Menjawab</span></span>
                     </button>
                 </div>
             </div>
 
-            <!-- 视图 4：答题区 -->
+            <!-- View: Quiz -->
             <div id="view-quiz" class="bg-white rounded-2xl shadow-xl overflow-hidden fade-in hidden">
-                <div class="bg-primary-600 text-white text-center py-3 px-4 font-bold md:text-lg shadow-sm relative z-10 flex justify-between items-center transition-colors duration-500">
-                    <span class="flex-grow text-center truncate pr-8 pl-8"><i class="fas fa-trophy mr-2 text-yellow-300"></i><span id="quiz-header-comp-name">加载中...</span></span>
+                <!-- 答题区头部：加入姓名与班级 -->
+                <div class="bg-primary-600 text-white text-center py-2 px-4 shadow-sm relative z-10 flex flex-col items-center transition-colors duration-500">
+                    <div class="font-bold md:text-lg truncate w-full"><i class="fas fa-trophy mr-2 text-yellow-300"></i><span id="quiz-header-comp-name">加载中...</span></div>
+                    <div class="text-xs md:text-sm text-primary-100 mt-1 font-medium bg-black/10 px-3 py-1 rounded-full"><i class="fas fa-user-graduate mr-1"></i><span id="quiz-header-student-info">姓名 | 班级</span></div>
                 </div>
+                
                 <div class="bg-gray-50 p-4 border-b flex justify-between items-center text-sm font-medium text-gray-600">
                     <div class="flex items-center">
                         <span id="quiz-progress-text" class="bg-gray-200 px-3 py-1 rounded-full text-gray-700">题目: 1 / 10</span>
@@ -268,7 +263,6 @@
                             <h3 id="question-text" class="dynamic-title font-bold text-gray-800 mb-2"></h3>
                             <p id="question-translation" class="hidden text-sm md:text-base text-gray-600 italic bg-primary-50/50 p-3 rounded-lg border-l-4 border-primary-400 mt-2 transition-all duration-500"></p>
                         </div>
-                        
                         <div class="flex flex-shrink-0 gap-2">
                             <button id="btn-translate-question" class="hidden flex flex-col items-center justify-center w-14 h-14 rounded-xl border-2 transition-all text-gray-400 border-gray-200 hover:bg-primary-50 hover:text-primary-600 hover:border-primary-400 focus:outline-none">
                                 <i class="fas fa-language text-xl mb-1"></i>
@@ -287,7 +281,7 @@
                     
                     <div id="options-container" class="space-y-3"></div>
                 </div>
-                
+
                 <div class="bg-gray-100 p-4 border-t border-b border-gray-200">
                     <div class="flex flex-col md:flex-row md:justify-between md:items-center mb-3 gap-2">
                         <span class="text-sm font-bold text-gray-700">
@@ -302,28 +296,77 @@
                     <div id="question-navigator" class="flex flex-wrap gap-2"></div>
                 </div>
 
-                <div class="bg-gray-50 p-4 flex justify-between items-center gap-2">
-                    <button id="btn-prev-question" disabled class="bg-gray-400 hover:bg-gray-500 disabled:opacity-50 text-white font-bold py-2 px-3 md:px-6 rounded-lg transition-colors shadow-sm flex flex-col items-center">
+                <div class="bg-gray-50 p-4 flex justify-between items-center gap-2 border-t border-gray-200">
+                    <button id="btn-prev-question" disabled class="bg-gray-400 hover:bg-gray-500 disabled:opacity-50 text-white font-bold py-2 px-4 md:px-8 rounded-lg transition-colors shadow-sm flex flex-col items-center">
                         <span><i class="fas fa-chevron-left mr-1"></i> 上一题</span>
-                        <span class="text-xs font-normal">Sblm</span>
+                        <span class="text-xs font-normal opacity-80">Sblm</span>
                     </button>
-                    <button id="btn-next-question" class="bg-primary-600 hover:bg-primary-700 text-white font-bold py-2 px-3 md:px-6 rounded-lg transition-colors shadow-sm duration-500 flex flex-col items-center">
+                    <!-- 点击这里不再弹窗，而是跳到大纲页 -->
+                    <button id="btn-next-question" class="bg-primary-600 hover:bg-primary-700 text-white font-bold py-2 px-4 md:px-8 rounded-lg transition-colors shadow-sm duration-500 flex flex-col items-center">
                         <span>下一题 <i class="fas fa-chevron-right ml-1"></i></span>
-                        <span class="text-xs font-normal">Seterusnya</span>
+                        <span class="text-xs font-normal opacity-80">Seterusnya</span>
                     </button>
                 </div>
             </div>
 
-            <!-- 视图 5：成绩与排行榜 -->
+            <!-- 视图 5：新增 - 答题大纲与最终提交页 (Summary View) -->
+            <div id="view-summary" class="bg-white rounded-2xl shadow-xl overflow-hidden fade-in hidden">
+                <div class="bg-primary-50 p-6 border-b border-primary-100 transition-colors duration-500">
+                    <h2 class="text-2xl font-bold text-primary-800 text-center">
+                        答题总览 / Semakan Akhir
+                    </h2>
+                </div>
+                <div class="p-6 md:p-10">
+                    <!-- 统计卡片 -->
+                    <div class="grid grid-cols-3 gap-3 md:gap-6 mb-8 text-center">
+                        <div class="bg-green-50 p-4 md:p-6 rounded-2xl border border-green-100 shadow-inner">
+                            <div class="text-3xl md:text-4xl font-extrabold text-green-600" id="sum-answered">0</div>
+                            <div class="text-sm font-bold text-green-800 mt-2">已答<br><span class="font-normal opacity-80">Dijawab</span></div>
+                        </div>
+                        <div class="bg-red-50 p-4 md:p-6 rounded-2xl border border-red-100 shadow-inner">
+                            <div class="text-3xl md:text-4xl font-extrabold text-red-600" id="sum-unanswered">0</div>
+                            <div class="text-sm font-bold text-red-800 mt-2">未答<br><span class="font-normal opacity-80">Belum</span></div>
+                        </div>
+                        <div class="bg-orange-50 p-4 md:p-6 rounded-2xl border border-orange-100 shadow-inner">
+                            <div class="text-3xl md:text-4xl font-extrabold text-orange-600" id="sum-flagged">0</div>
+                            <div class="text-sm font-bold text-orange-800 mt-2">存疑(🚩)<br><span class="font-normal opacity-80">Ditanda</span></div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-10 bg-gray-50 p-6 rounded-2xl border border-gray-100">
+                        <h3 class="text-gray-700 font-bold mb-4 text-center"><i class="fas fa-th mr-2"></i>点击题号返回修改 / Klik nombor untuk semak</h3>
+                        
+                        <!-- 新增：答题总览图例 (Legend) -->
+                        <div class="flex justify-center gap-4 md:gap-6 text-xs md:text-sm font-medium text-gray-600 mb-6">
+                            <span class="flex items-center"><div class="w-4 h-4 bg-primary-600 rounded-md mr-1.5 transition-colors duration-500 shadow-sm"></div>已答</span>
+                            <span class="flex items-center"><div class="w-4 h-4 bg-white border-2 border-red-300 rounded-md mr-1.5 shadow-sm"></div>未答</span>
+                            <span class="flex items-center"><div class="w-4 h-4 bg-orange-500 rounded-full mr-1.5 shadow-sm border-2 border-white"></div>存疑</span>
+                        </div>
+
+                        <div id="summary-navigator" class="flex flex-wrap gap-3 justify-center"></div>
+                    </div>
+                    
+                    <div class="flex flex-col md:flex-row gap-4 justify-center">
+                        <button id="btn-back-to-quiz" class="px-8 py-4 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-xl font-bold transition-colors flex items-center justify-center flex-col">
+                            <span><i class="fas fa-arrow-left mr-2"></i>返回作答</span>
+                            <span class="text-xs font-normal opacity-80 mt-1">Kembali Ujian</span>
+                        </button>
+                        <button id="btn-final-submit" class="px-8 py-4 bg-red-500 hover:bg-red-600 text-white rounded-xl font-bold transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-1 flex items-center justify-center flex-col">
+                            <span class="text-lg">确认提交 <i class="fas fa-paper-plane ml-2"></i></span>
+                            <span class="text-sm font-normal opacity-90 mt-1">Sahkan & Hantar</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 视图 6：成绩与排行榜 -->
             <div id="view-result" class="bg-white rounded-2xl shadow-xl overflow-hidden fade-in hidden">
                 <div class="p-8">
                     <div class="text-center mb-8">
                         <div id="result-icon" class="inline-block p-4 rounded-full bg-green-100 mb-4">
                             <i class="fas fa-trophy text-5xl text-yellow-500"></i>
                         </div>
-                        <h2 class="text-3xl font-bold text-gray-800 mb-2" id="result-title">
-                            交卷成功！<br><span class="text-xl">Ujian Dihantar!</span>
-                        </h2>
+                        <h2 class="text-3xl font-bold text-gray-800 mb-2" id="result-title">交卷成功！<br><span class="text-xl">Ujian Dihantar!</span></h2>
                         <p class="text-gray-500">感谢您的参与，您的成绩已记录在案。</p>
                         
                         <div id="cert-btn-container" class="mt-4 hidden">
@@ -355,9 +398,7 @@
 
                     <div id="review-section-container" class="mb-8 border border-gray-200 rounded-xl overflow-hidden hidden">
                         <div class="bg-gray-100 px-4 py-3 border-b cursor-pointer flex justify-between items-center" id="toggle-review">
-                            <h3 class="font-bold text-gray-700">
-                                <i class="fas fa-search mr-2"></i>赛后考卷回顾 / Semakan Jawapan
-                            </h3>
+                            <h3 class="font-bold text-gray-700"><i class="fas fa-search mr-2"></i>赛后考卷回顾 / Semakan Jawapan</h3>
                             <i class="fas fa-chevron-down text-gray-500 transition-transform" id="review-icon"></i>
                         </div>
                         <div id="review-content" class="hidden divide-y divide-gray-100 max-h-96 overflow-y-auto bg-white p-4"></div>
@@ -371,12 +412,7 @@
                         <div class="overflow-x-auto">
                             <table class="w-full text-left text-sm">
                                 <thead class="bg-gray-50 text-gray-600">
-                                    <tr>
-                                        <th class="py-2 px-4 border-b">No</th>
-                                        <th class="py-2 px-4 border-b">Nama</th>
-                                        <th class="py-2 px-4 border-b">Markah</th>
-                                        <th class="py-2 px-4 border-b">Masa</th>
-                                    </tr>
+                                    <tr><th class="py-2 px-4 border-b">No</th><th class="py-2 px-4 border-b">Nama</th><th class="py-2 px-4 border-b">Markah</th><th class="py-2 px-4 border-b">Masa</th></tr>
                                 </thead>
                                 <tbody id="leaderboard-body" class="divide-y divide-gray-100"></tbody>
                             </table>
@@ -384,9 +420,7 @@
                     </div>
 
                     <div class="text-center">
-                        <button onclick="location.reload()" class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-3 px-8 rounded-lg transition-colors">
-                            退出系统 / Log Keluar
-                        </button>
+                        <button onclick="location.reload()" class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-3 px-8 rounded-lg transition-colors">退出系统 / Log Keluar</button>
                     </div>
                 </div>
             </div>
@@ -413,7 +447,7 @@
         <div class="mt-8 text-gray-500 italic" id="cert-date">Tarikh: 2026-01-01</div>
     </div>
 
-    <!-- 系统逻辑脚本 -->
+    <!-- 脚本 -->
     <script>
         const GAS_URL = "https://script.google.com/macros/s/AKfycbxjM0IirZjAAQ3kPUrRRPqwWVS14f3PNb7p3ep0bgmUWFFNUi9oiPznBno2mfJ8EBoP/exec"; 
 
@@ -441,10 +475,10 @@
             register: document.getElementById('view-register'),
             instructions: document.getElementById('view-instructions'),
             quiz: document.getElementById('view-quiz'),
+            summary: document.getElementById('view-summary'),
             result: document.getElementById('view-result')
         };
 
-        // ================= 主题切换引擎 =================
         function applyTheme(themeName) {
             const validThemes = ['blue', 'green', 'purple', 'red', 'orange', 'teal'];
             if (!validThemes.includes(themeName)) themeName = 'blue';
@@ -452,27 +486,21 @@
             document.body.classList.add(`theme-${themeName}`);
         }
 
-        // ================= 大门进入与全屏请求 =================
         document.getElementById('btn-enter-fullscreen').addEventListener('click', () => {
             const elem = document.documentElement;
             try {
-                if (elem.requestFullscreen) {
-                    elem.requestFullscreen().catch(err => console.warn(err));
-                } else if (elem.webkitRequestFullscreen) {
-                    elem.webkitRequestFullscreen();
-                }
-            } catch (e) { console.warn(e); }
+                if (elem.requestFullscreen) elem.requestFullscreen().catch(err => console.warn(err));
+                else if (elem.webkitRequestFullscreen) elem.webkitRequestFullscreen();
+            } catch (e) {}
             document.getElementById('fullscreen-overlay').classList.add('hidden');
         });
 
-        // ================= 退出全屏监听与密码锁死逻辑 =================
         document.addEventListener('fullscreenchange', handleFullscreenChange);
         document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
 
         function handleFullscreenChange() {
             if (!document.fullscreenElement && !document.webkitFullscreenElement) {
                 if (!document.getElementById('fullscreen-overlay').classList.contains('hidden')) return;
-                
                 if (!state.isExamFinished) {
                     document.getElementById('lockdown-overlay').classList.remove('hidden');
                     document.getElementById('unlock-password').value = '';
@@ -485,22 +513,15 @@
             const pwd = document.getElementById('unlock-password').value;
             if (pwd === state.adminPassword) {
                 const elem = document.documentElement;
-                try {
-                    if (elem.requestFullscreen) elem.requestFullscreen();
-                    else if (elem.webkitRequestFullscreen) elem.webkitRequestFullscreen();
-                } catch(e) {}
+                try { if (elem.requestFullscreen) elem.requestFullscreen(); else if (elem.webkitRequestFullscreen) elem.webkitRequestFullscreen(); } catch(e) {}
                 document.getElementById('lockdown-overlay').classList.add('hidden');
-            } else {
-                document.getElementById('unlock-error').classList.remove('hidden');
-            }
+            } else { document.getElementById('unlock-error').classList.remove('hidden'); }
         });
 
         document.getElementById('unlock-password').addEventListener('keydown', (e) => {
             if (e.key === 'Enter') document.getElementById('btn-unlock').click();
         });
 
-
-        // ================= 顶部时钟逻辑 (DD-MM-YYYY) =================
         setInterval(() => {
             const clockEl = document.getElementById('system-clock');
             const now = new Date();
@@ -508,26 +529,19 @@
             const m = String(now.getMonth() + 1).padStart(2, '0');
             const y = now.getFullYear();
             const timeOptions = { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true };
-            const timeStr = now.toLocaleTimeString('en-MY', timeOptions); // 使用 en-MY 确保稳定的 AM/PM
-            clockEl.innerText = `${d}-${m}-${y} | ${timeStr}`;
+            clockEl.innerText = `${d}-${m}-${y} | ${now.toLocaleTimeString('en-MY', timeOptions)}`;
         }, 1000);
 
-        // ================= 字体调节逻辑 =================
-        document.getElementById('btn-font-inc').onclick = () => {
-            if(state.fontZoom < 1.4) { state.fontZoom += 0.1; document.documentElement.style.setProperty('--zoom', state.fontZoom); }
-        };
-        document.getElementById('btn-font-dec').onclick = () => {
-            if(state.fontZoom > 0.8) { state.fontZoom -= 0.1; document.documentElement.style.setProperty('--zoom', state.fontZoom); }
-        };
+        document.getElementById('btn-font-inc').onclick = () => { if(state.fontZoom < 1.4) { state.fontZoom += 0.1; document.documentElement.style.setProperty('--zoom', state.fontZoom); } };
+        document.getElementById('btn-font-dec').onclick = () => { if(state.fontZoom > 0.8) { state.fontZoom -= 0.1; document.documentElement.style.setProperty('--zoom', state.fontZoom); } };
 
-        // UI Helpers
         function showView(viewName) {
             Object.values(views).forEach(v => v.classList.add('hidden'));
             views[viewName].classList.remove('hidden');
         }
 
         function showLoading(msg) {
-            document.getElementById('loading-text').innerHTML = `<strong>${msg}</strong>`;
+            document.getElementById('loading-text').innerHTML = msg;
             showView('loading');
         }
 
@@ -545,7 +559,6 @@
             
             document.getElementById('modal-title').innerText = title;
             document.getElementById('modal-message').innerHTML = message;
-            
             if(type === 'warning') icon.innerHTML = '<i class="fas fa-exclamation-triangle text-orange-500"></i>';
             else if(type === 'error') icon.innerHTML = '<i class="fas fa-times-circle text-red-500"></i>';
             else icon.innerHTML = '<i class="fas fa-info-circle text-blue-500"></i>';
@@ -553,10 +566,7 @@
             btnCancel.style.display = showCancel ? 'block' : 'none';
             btnConfirm.innerText = confirmText;
             
-            btnConfirm.onclick = () => {
-                modal.classList.add('hidden');
-                if(onConfirm) onConfirm();
-            };
+            btnConfirm.onclick = () => { modal.classList.add('hidden'); if(onConfirm) onConfirm(); };
             btnCancel.onclick = () => modal.classList.add('hidden');
             modal.classList.remove('hidden');
         }
@@ -578,25 +588,14 @@
         function saveProgress() {
             if(!state.userInfo.studentId || !state.currentCompetition) return;
             const lsKey = `quiz_${state.currentCompetition.id}_${state.userInfo.studentId}`;
-            const dataToSave = {
-                questions: state.questions,
-                currentQIndex: state.currentQIndex,
-                answers: state.answers,
-                flags: state.flags,             
-                eliminated: state.eliminated,   
-                elapsedSeconds: state.elapsedSeconds
-            };
+            const dataToSave = { questions: state.questions, currentQIndex: state.currentQIndex, answers: state.answers, flags: state.flags, eliminated: state.eliminated, elapsedSeconds: state.elapsedSeconds };
             localStorage.setItem(lsKey, JSON.stringify(dataToSave));
         }
 
         function checkSavedProgress(compId, studentId) {
             const saved = localStorage.getItem(`quiz_${compId}_${studentId}`);
-            if (saved) {
-                document.getElementById('resume-alert').classList.remove('hidden');
-                return JSON.parse(saved);
-            }
-            document.getElementById('resume-alert').classList.add('hidden');
-            return null;
+            if (saved) { document.getElementById('resume-alert').classList.remove('hidden'); return JSON.parse(saved); }
+            document.getElementById('resume-alert').classList.add('hidden'); return null;
         }
 
         function clearProgress() {
@@ -605,13 +604,10 @@
 
         function shuffleOptions(question) {
             let optObjs = question.options.map((opt, i) => ({ 
-                text: opt, 
-                trans: (question.optionsTranslation && question.optionsTranslation[i]) ? question.optionsTranslation[i] : "",
-                isCorrect: i === question.answerIndex 
+                text: opt, trans: (question.optionsTranslation && question.optionsTranslation[i]) ? question.optionsTranslation[i] : "", isCorrect: i === question.answerIndex 
             }));
             optObjs.sort(() => Math.random() - 0.5);
             question.options = optObjs.map(o => o.text);
-            // 新增：让翻译文本跟着选项一起打乱
             question.optionsTranslation = optObjs.map(o => o.trans);
             question.answerIndex = optObjs.findIndex(o => o.isCorrect);
             return question;
@@ -619,10 +615,11 @@
 
         // ================= API & Mock Data =================
         const mockData = {
-            students: { "20001": { name: "王小明", className: "6A" }, "20002": { name: "李小华", className: "6B" } },
+            students: { "1A01": { name: "一年级新生", className: "1A" }, "6B01": { name: "六年级学长", className: "6B" } },
             competitions: [
-                { id: "C001", name: "2026年全柔华小常识比赛", startTime: null, endTime: null, allowReview: true, allowCert: true, allowRanking: true, allowScore: true, timeLimit: 30, themeColor: "blue", allowTranslation: true, allowMultiple: false },
-                { id: "C002", name: "[测试] 多次作答赛(Multiple)", startTime: null, endTime: null, allowReview: true, allowCert: true, allowRanking: true, allowScore: true, timeLimit: 5, themeColor: "green", allowTranslation: false, allowMultiple: true }
+                { id: "C001", name: "2026年全柔华小常识比赛 (全校)", startTime: null, endTime: null, allowReview: true, allowCert: true, allowRanking: true, allowScore: true, timeLimit: 30, themeColor: "blue", allowTranslation: true, allowMultiple: false, allowedClasses: "" },
+                { id: "C002", name: "[测试] 一年级拼音赛 (限1年级)", startTime: null, endTime: null, allowReview: true, allowCert: true, allowRanking: true, allowScore: true, timeLimit: 5, themeColor: "green", allowTranslation: false, allowMultiple: true, allowedClasses: "1" },
+                { id: "C003", name: "[测试] 6B班内部测验 (限6B班)", startTime: null, endTime: null, allowReview: true, allowCert: true, allowRanking: true, allowScore: true, timeLimit: null, themeColor: "red", allowTranslation: true, allowMultiple: true, allowedClasses: "6B" }
             ],
             questions: [
                 { id: "Q1", text: "以下哪个是柔佛州的州旗？", translation: "Antara berikut, yang manakah merupakan bendera negeri Johor?", options: ["选项A", "选项B", "选项C", "选项D"], optionsTranslation: ["Pilihan A", "Pilihan B", "Pilihan C", "Pilihan D"], answerIndex: 0, imageUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5a/Flag_of_Johor.svg/800px-Flag_of_Johor.svg.png" },
@@ -669,57 +666,67 @@
         window.onload = async () => {
             applyTheme('blue');
             const res = await apiCall('getCompetitions');
-            
             const btnEnter = document.getElementById('btn-enter-fullscreen');
-            
             if (res.success) { 
-                state.competitions = res.data; 
-                showView('register'); 
-                
-                // 数据加载完毕后，激活“进入系统”按钮
+                state.competitions = res.data; showView('register'); 
                 btnEnter.disabled = false;
                 btnEnter.className = "bg-white text-primary-700 hover:bg-primary-50 hover:text-primary-800 font-bold py-4 px-12 rounded-full shadow-[0_10px_25px_rgba(0,0,0,0.3)] text-xl transition-all duration-300 transform hover:-translate-y-1 hover:shadow-[0_15px_35px_rgba(0,0,0,0.4)] flex items-center flex-col group cursor-pointer";
-                btnEnter.innerHTML = `
-                    <span class="mb-1 flex items-center"><i class="fas fa-sign-in-alt mr-2 group-hover:translate-x-1 transition-transform"></i>进入系统</span>
-                    <span class="text-sm font-normal opacity-70">Masuk ke Sistem</span>
-                `;
-            } 
-            else { 
+                btnEnter.innerHTML = `<span class="mb-1 flex items-center"><i class="fas fa-sign-in-alt mr-2 group-hover:translate-x-1 transition-transform"></i>进入系统</span><span class="text-sm font-normal opacity-70">Masuk ke Sistem</span>`;
+            } else { 
                 showModal("错误 / Ralat", "获取比赛数据失败，请刷新网页重试", "error"); 
-                btnEnter.innerHTML = `
-                    <span class="mb-1 flex items-center"><i class="fas fa-times-circle mr-2"></i>连接失败，请刷新</span>
-                    <span class="text-sm font-normal opacity-70">Sila muat semula halaman</span>
-                `;
+                btnEnter.innerHTML = `<span class="mb-1 flex items-center"><i class="fas fa-times-circle mr-2"></i>连接失败，请刷新</span><span class="text-sm font-normal opacity-70">Sila muat semula halaman</span>`;
             }
         };
 
-        document.getElementById('reg-student-id').addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') { e.preventDefault(); document.getElementById('btn-verify-id').click(); }
-        });
+        document.getElementById('reg-student-id').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); document.getElementById('btn-verify-id').click(); } });
 
         document.getElementById('btn-verify-id').addEventListener('click', async () => {
             const studentId = document.getElementById('reg-student-id').value.trim();
             const msgEl = document.getElementById('verify-msg');
             const btn = document.getElementById('btn-verify-id');
             if (!studentId) return;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>'; btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin text-xl"></i>'; btn.disabled = true;
 
             const res = await apiCall('verifyStudent', { id: studentId });
-            btn.innerHTML = `<span>验证</span><span class="text-xs">Sahkan</span>`; btn.disabled = false;
+            btn.innerHTML = `<span class="flex items-center"><i class="fas fa-search mr-1.5"></i>验证</span><span class="text-[11px] opacity-90">Sahkan</span>`; btn.disabled = false;
 
             if (res.success) {
                 document.getElementById('reg-name').value = res.data.name;
                 document.getElementById('reg-class').value = res.data.className;
-                document.getElementById('student-info-section').classList.remove('opacity-60');
+                document.getElementById('student-info-section').classList.remove('opacity-50');
                 
                 msgEl.innerHTML = `<i class="fas fa-check-circle mr-1"></i> 验证成功 / Disahkan`;
-                msgEl.className = "text-sm mt-2 text-green-600 font-medium block";
+                msgEl.className = "text-sm mt-3 text-green-600 font-bold block";
                 state.userInfo.isVerified = true; state.userInfo.studentId = studentId;
+                state.userInfo.className = res.data.className;
 
                 const select = document.getElementById('reg-competition');
-                select.disabled = false; select.classList.remove('bg-gray-100', 'cursor-not-allowed');
                 select.innerHTML = `<option value="">请选择作答项目... / Pilih Modul...</option>`;
-                state.competitions.forEach(c => select.add(new Option(c.name, c.id)));
+                
+                // 根据班级进行项目筛选
+                const studentClassUpper = state.userInfo.className.toUpperCase();
+                const studentGradeMatch = studentClassUpper.match(/[0-9]+/); 
+                const studentGrade = studentGradeMatch ? studentGradeMatch[0] : "";
+
+                let availableComps = 0;
+                state.competitions.forEach(c => {
+                    let isAllowed = true;
+                    if (c.allowedClasses) {
+                        const allowedArr = c.allowedClasses.toUpperCase().split(',').map(s => s.trim());
+                        // 匹配确切的班级 (如 6B) 或者匹配年级数字 (如 6)
+                        isAllowed = allowedArr.includes(studentClassUpper) || (studentGrade && allowedArr.includes(studentGrade));
+                    }
+                    if (isAllowed) {
+                        select.add(new Option(c.name, c.id));
+                        availableComps++;
+                    }
+                });
+
+                if (availableComps > 0) {
+                    select.disabled = false; select.classList.remove('bg-gray-50', 'cursor-not-allowed', 'text-gray-500'); select.classList.add('bg-white', 'text-primary-900', 'cursor-pointer', 'shadow-md');
+                } else {
+                    select.disabled = true; select.innerHTML = `<option value="">当前没有适合您的项目 / Tiada modul untuk anda</option>`;
+                }
 
                 select.addEventListener('change', () => {
                     const compId = select.value;
@@ -728,9 +735,8 @@
                     
                     if(!compId) {
                         document.getElementById('resume-alert').classList.add('hidden'); timeMsgEl.classList.add('hidden');
-                        submitBtn.disabled = true; submitBtn.classList.remove('bg-primary-600', 'hover:bg-primary-700'); submitBtn.classList.add('bg-gray-400', 'cursor-not-allowed');
-                        applyTheme('blue');
-                        return;
+                        submitBtn.disabled = true; submitBtn.classList.remove('bg-primary-600', 'hover:bg-primary-700', 'text-white', 'shadow-lg', 'hover:-translate-y-1', 'hover:shadow-xl'); submitBtn.classList.add('bg-gray-300', 'cursor-not-allowed', 'text-gray-500');
+                        applyTheme('blue'); return;
                     }
                     
                     const comp = state.competitions.find(c => c.id === compId);
@@ -742,26 +748,26 @@
                     if (comp.startTime && now < comp.startTime) {
                         canJoin = false;
                         const dateStr = new Date(comp.startTime).toLocaleString('en-MY', { hour12: true });
-                        timeMsgEl.innerHTML = `<i class="fas fa-lock mr-1"></i> 比赛未开始 (开放时间: ${dateStr})<br><span class="opacity-80">Belum bermula (Masa: ${dateStr})</span>`;
-                        timeMsgEl.className = "text-sm mt-2 font-medium block text-orange-600";
+                        timeMsgEl.innerHTML = `<i class="fas fa-lock mr-1"></i> 项目未开放 (开放时间: ${dateStr})<br><span class="opacity-80">Belum bermula (Masa: ${dateStr})</span>`;
+                        timeMsgEl.className = "text-sm mt-3 font-bold block text-orange-600 bg-orange-50 p-3 rounded-lg border border-orange-100";
                     } else if (comp.endTime && now > comp.endTime) {
                         canJoin = false;
-                        timeMsgEl.innerHTML = `<i class="fas fa-times-circle mr-1"></i> 比赛已结束<br><span class="opacity-80">Pertandingan tamat</span>`;
-                        timeMsgEl.className = "text-sm mt-2 font-medium block text-red-600";
+                        timeMsgEl.innerHTML = `<i class="fas fa-times-circle mr-1"></i> 项目已结束<br><span class="opacity-80">Telah tamat</span>`;
+                        timeMsgEl.className = "text-sm mt-3 font-bold block text-red-600 bg-red-50 p-3 rounded-lg border border-red-100";
                     } else { timeMsgEl.classList.add('hidden'); }
                     
                     if (canJoin) {
-                        submitBtn.disabled = false; submitBtn.classList.remove('bg-gray-400', 'cursor-not-allowed'); submitBtn.classList.add('bg-primary-600', 'hover:bg-primary-700');
+                        submitBtn.disabled = false; submitBtn.classList.remove('bg-gray-300', 'cursor-not-allowed', 'text-gray-500'); submitBtn.classList.add('bg-primary-600', 'hover:bg-primary-700', 'text-white', 'shadow-lg', 'hover:-translate-y-1', 'hover:shadow-xl');
                         checkSavedProgress(compId, studentId);
                     } else {
-                        submitBtn.disabled = true; submitBtn.classList.remove('bg-primary-600', 'hover:bg-primary-700'); submitBtn.classList.add('bg-gray-400', 'cursor-not-allowed');
+                        submitBtn.disabled = true; submitBtn.classList.remove('bg-primary-600', 'hover:bg-primary-700', 'text-white', 'shadow-lg', 'hover:-translate-y-1', 'hover:shadow-xl'); submitBtn.classList.add('bg-gray-300', 'cursor-not-allowed', 'text-gray-500');
                         document.getElementById('resume-alert').classList.add('hidden');
                     }
                 });
-                document.getElementById('btn-submit-reg').disabled = false; document.getElementById('btn-submit-reg').classList.remove('bg-gray-400'); document.getElementById('btn-submit-reg').classList.add('bg-primary-600'); document.getElementById('reg-student-id').readOnly = true; btn.style.display = 'none';
+                document.getElementById('btn-submit-reg').disabled = false; document.getElementById('btn-submit-reg').classList.remove('bg-gray-300', 'cursor-not-allowed', 'text-gray-500'); document.getElementById('btn-submit-reg').classList.add('bg-primary-600', 'hover:bg-primary-700', 'text-white', 'shadow-lg', 'hover:-translate-y-1', 'hover:shadow-xl'); document.getElementById('reg-student-id').readOnly = true; btn.style.display = 'none';
             } else {
                 msgEl.innerHTML = `<i class="fas fa-times-circle mr-1"></i> ${res.error}`;
-                msgEl.className = "text-sm mt-2 text-red-500 font-medium block";
+                msgEl.className = "text-sm mt-3 text-red-500 font-bold block";
             }
         });
 
@@ -781,10 +787,9 @@
                 document.getElementById('inst-title').innerText = state.currentCompetition.name;
                 document.getElementById('inst-count').innerText = state.questions.length;
                 document.getElementById('inst-time-limit').innerText = state.currentCompetition.timeLimit ? `${state.currentCompetition.timeLimit} 分钟 / Minit` : '无限制 / Tiada Had';
-                
                 showView('instructions');
             } else {
-                showLoading("正在准备试卷...<br><span class='text-sm font-normal'>Menyediakan soalan...</span>");
+                showLoading("正在准备试卷...<br><span class='text-sm font-normal opacity-80'>Menyediakan soalan...</span>");
                 const res = await apiCall('getQuestions', { compId: compId });
                 if (res.success && res.data.length > 0) {
                     let qs = res.data; qs.sort(() => Math.random() - 0.5);
@@ -801,6 +806,8 @@
         });
 
         document.getElementById('btn-start-quiz').addEventListener('click', () => {
+            // 答题头部显示姓名与班级
+            document.getElementById('quiz-header-student-info').innerText = `${state.userInfo.name} | ${state.userInfo.className}`;
             startQuizTimer();
             window.addEventListener('beforeunload', preventReload);
             showView('quiz');
@@ -860,45 +867,22 @@
             btnTranslate.classList.remove('bg-primary-50', 'text-primary-600', 'border-primary-400');
             btnTranslate.classList.add('text-gray-400', 'border-gray-200');
 
-            // 判断：只要题目或选项有翻译，就显示翻译按钮
-            const hasTranslation = q.translation || (q.optionsTranslation && q.optionsTranslation.some(t => t !== ""));
-
-            if (hasTranslation && state.currentCompetition.allowTranslation !== false) {
+            if (q.translation && state.currentCompetition.allowTranslation !== false) {
                 btnTranslate.classList.remove('hidden');
-                
-                if (q.translation) {
-                    translationText.innerText = q.translation;
-                    translationText.classList.add('hidden'); // 默认隐藏
-                } else {
-                    translationText.innerText = '';
-                }
-                
+                translationText.innerText = q.translation;
                 btnTranslate.onclick = () => {
-                    if (q.translation) translationText.classList.toggle('hidden');
-                    btnTranslate.classList.toggle('text-primary-600');
-                    btnTranslate.classList.toggle('text-gray-400');
-                    btnTranslate.classList.toggle('bg-primary-50');
-                    btnTranslate.classList.toggle('border-primary-400');
-                    btnTranslate.classList.toggle('border-gray-200');
-
-                    // 切换所有选项翻译的显示状态
-                    document.querySelectorAll('.option-trans-text').forEach(el => {
-                        el.classList.toggle('hidden');
-                    });
+                    translationText.classList.toggle('hidden');
+                    btnTranslate.classList.toggle('text-primary-600'); btnTranslate.classList.toggle('text-gray-400');
+                    btnTranslate.classList.toggle('bg-primary-50'); btnTranslate.classList.toggle('border-primary-400'); btnTranslate.classList.toggle('border-gray-200');
+                    document.querySelectorAll('.option-trans-text').forEach(el => el.classList.toggle('hidden'));
                 };
-            } else {
-                btnTranslate.classList.add('hidden'); translationText.innerText = '';
-            }
+            } else { btnTranslate.classList.add('hidden'); translationText.innerText = ''; }
 
             const btnFlag = document.getElementById('btn-flag-question');
             if (state.flags[state.currentQIndex]) {
-                btnFlag.classList.replace('text-gray-400', 'text-orange-500');
-                btnFlag.classList.replace('border-gray-200', 'border-orange-300');
-                btnFlag.classList.add('bg-orange-50');
+                btnFlag.classList.replace('text-gray-400', 'text-orange-500'); btnFlag.classList.replace('border-gray-200', 'border-orange-300'); btnFlag.classList.add('bg-orange-50');
             } else {
-                btnFlag.classList.replace('text-orange-500', 'text-gray-400');
-                btnFlag.classList.replace('border-orange-300', 'border-gray-200');
-                btnFlag.classList.remove('bg-orange-50');
+                btnFlag.classList.replace('text-orange-500', 'text-gray-400'); btnFlag.classList.replace('border-orange-300', 'border-gray-200'); btnFlag.classList.remove('bg-orange-50');
             }
             
             const imgContainer = document.getElementById('question-image-container');
@@ -911,14 +895,17 @@
             
             const btnPrev = document.getElementById('btn-prev-question');
             const btnNext = document.getElementById('btn-next-question');
-            
             btnPrev.disabled = state.currentQIndex === 0;
             
-            if (state.currentQIndex === state.questions.length - 1) {
-                btnNext.innerHTML = `<span>完成与检查 <i class="fas fa-flag-checkered ml-1"></i></span><span class="text-xs font-normal">Selesai & Semak</span>`;
+            // 判断是否所有题目都已经作答
+            const allAnswered = state.questions.length > 0 && state.questions.every((_, i) => state.answers[i] !== undefined && state.answers[i] !== null);
+
+            // 如果已经全部作答完毕，或者目前在最后一题，就显示“完成与检查”
+            if (allAnswered || state.currentQIndex === state.questions.length - 1) {
+                btnNext.innerHTML = `<span>完成与检查 <i class="fas fa-flag-checkered ml-1"></i></span><span class="text-xs font-normal opacity-80">Selesai & Semak</span>`;
                 btnNext.classList.replace('bg-primary-600', 'bg-green-600'); btnNext.classList.replace('hover:bg-primary-700', 'hover:bg-green-700');
             } else {
-                btnNext.innerHTML = `<span>下一题 <i class="fas fa-chevron-right ml-1"></i></span><span class="text-xs font-normal">Seterusnya</span>`;
+                btnNext.innerHTML = `<span>下一题 <i class="fas fa-chevron-right ml-1"></i></span><span class="text-xs font-normal opacity-80">Seterusnya</span>`;
                 if(btnNext.classList.contains('bg-green-600')) { btnNext.classList.replace('bg-green-600', 'bg-primary-600'); btnNext.classList.replace('hover:bg-green-700', 'hover:bg-primary-700'); }
             }
             
@@ -929,23 +916,17 @@
                 const isEliminated = state.eliminated[state.currentQIndex].includes(index);
                 const isSelected = state.answers[state.currentQIndex] === index;
 
-                const rowDiv = document.createElement('div');
-                rowDiv.className = "flex gap-2 w-full items-stretch";
-                
+                const rowDiv = document.createElement('div'); rowDiv.className = "flex gap-2 w-full items-stretch";
                 const optBtn = document.createElement('button');
                 optBtn.className = `flex-grow option-btn text-left p-4 rounded-xl border-2 transition-all font-medium text-gray-700 flex items-center gap-4 ${isEliminated ? 'opacity-40 bg-gray-50 border-gray-200 cursor-not-allowed' : (isSelected ? 'selected-option' : 'hover:border-primary-400 hover:bg-primary-50 bg-white border-gray-200')}`;
                 
                 let optContentClass = isEliminated ? "line-through text-gray-400 dynamic-text" : "dynamic-text";
                 let labelBg = isSelected ? "bg-white/20 text-white" : "bg-gray-100 text-gray-600";
                 
-                // 新增：构建包含翻译的选项 HTML
                 const optTransText = (q.optionsTranslation && q.optionsTranslation[index]) ? q.optionsTranslation[index] : "";
                 let optHtml = `<span class="${optContentClass} block">${optText}</span>`;
-                if (optTransText) {
-                    optHtml += `<span class="option-trans-text hidden text-sm italic opacity-75 mt-0.5 block font-normal leading-tight">${optTransText}</span>`;
-                }
+                if (optTransText) optHtml += `<span class="option-trans-text hidden text-sm italic opacity-75 mt-0.5 block font-normal leading-tight">${optTransText}</span>`;
 
-                // 修改排版，让选项和翻译垂直排列
                 optBtn.innerHTML = `<span class="flex-shrink-0 inline-flex items-center justify-center w-8 h-8 rounded-full ${labelBg} font-bold text-sm mt-0.5">${labels[index]}</span> <div class="flex flex-col items-start">${optHtml}</div>`;
                 
                 const elimBtn = document.createElement('button');
@@ -955,11 +936,8 @@
 
                 elimBtn.onclick = (e) => {
                     e.stopPropagation();
-                    if(isEliminated) { state.eliminated[state.currentQIndex] = state.eliminated[state.currentQIndex].filter(i => i !== index); } 
-                    else {
-                        state.eliminated[state.currentQIndex].push(index);
-                        if(isSelected) state.answers[state.currentQIndex] = null; 
-                    }
+                    if(isEliminated) state.eliminated[state.currentQIndex] = state.eliminated[state.currentQIndex].filter(i => i !== index);
+                    else { state.eliminated[state.currentQIndex].push(index); if(isSelected) state.answers[state.currentQIndex] = null; }
                     saveProgress(); renderQuestion();
                 };
 
@@ -972,63 +950,82 @@
                 rowDiv.appendChild(optBtn); rowDiv.appendChild(elimBtn); container.appendChild(rowDiv);
             });
 
-            renderNavigator();
-        }
-
-        function renderNavigator() {
+            // 底部的小导航条
             const nav = document.getElementById('question-navigator');
-            nav.innerHTML = '';
-            state.questions.forEach((_, i) => {
-                const isAnswered = state.answers[i] !== undefined && state.answers[i] !== null;
-                const isCurrent = i === state.currentQIndex;
-                const isFlagged = state.flags[i];
-                
-                const btn = document.createElement('button');
-                let baseClass = "w-10 h-10 rounded-lg font-bold text-sm flex items-center justify-center transition-all focus:outline-none relative ";
-                
-                if (isAnswered) baseClass += "bg-primary-600 text-white shadow-md hover:bg-primary-700 "; 
-                else baseClass += "bg-white text-gray-600 border-2 border-gray-200 hover:bg-gray-100 ";
-                
-                if (isCurrent) baseClass += "ring-4 ring-primary-300 ring-offset-1 ";
-                
-                btn.className = baseClass;
-                btn.innerText = i + 1;
-                
-                if (isFlagged) btn.innerHTML += `<div class="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-white"></div>`;
-                
-                btn.onclick = () => { state.currentQIndex = i; renderQuestion(); };
-                nav.appendChild(btn);
-            });
+            if (nav) {
+                nav.innerHTML = '';
+                state.questions.forEach((_, i) => {
+                    const isAnswered = state.answers[i] !== undefined && state.answers[i] !== null;
+                    const isFlagged = state.flags[i];
+                    const btn = document.createElement('button');
+                    let baseClass = "w-10 h-10 rounded-lg font-bold text-sm flex items-center justify-center transition-all focus:outline-none relative ";
+                    if (isAnswered) baseClass += "bg-primary-600 text-white shadow-md hover:bg-primary-700 "; 
+                    else baseClass += "bg-white text-gray-600 border-2 border-gray-200 hover:bg-gray-100 ";
+                    if (i === state.currentQIndex) baseClass += "ring-4 ring-primary-300 ring-offset-1 ";
+                    btn.className = baseClass; btn.innerText = i + 1;
+                    if (isFlagged) btn.innerHTML += `<div class="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-white"></div>`;
+                    btn.onclick = () => { state.currentQIndex = i; renderQuestion(); };
+                    nav.appendChild(btn);
+                });
+            }
         }
 
-        function showSubmitSummary() {
+        // ================= 答题总览 (Summary View) =================
+        document.getElementById('btn-next-question').addEventListener('click', () => {
+            const allAnswered = state.questions.length > 0 && state.questions.every((_, i) => state.answers[i] !== undefined && state.answers[i] !== null);
+            
+            // 同样，只要全部答完或者到了最后一题，点击就前往大纲页
+            if (allAnswered || state.currentQIndex === state.questions.length - 1) { 
+                renderSummaryView(); showView('summary'); 
+            } else { 
+                state.currentQIndex++; renderQuestion(); 
+            }
+        });
+
+        document.getElementById('btn-prev-question').addEventListener('click', () => {
+            if (state.currentQIndex > 0) { state.currentQIndex--; renderQuestion(); }
+        });
+
+        function renderSummaryView() {
             let answered = 0;
             state.questions.forEach((_, i) => { if(state.answers[i] !== undefined && state.answers[i] !== null) answered++; });
             const unanswered = state.questions.length - answered;
             const flaggedCount = state.flags.filter(Boolean).length;
 
-            let msg = `您已作答 <strong>${answered}</strong> 题，还有 <strong class="text-red-500 text-lg">${unanswered}</strong> 题未作答。<br><span class="text-xs opacity-80">Anda telah menjawab ${answered} soalan, ${unanswered} belum dijawab.</span>`;
+            document.getElementById('sum-answered').innerText = answered;
+            document.getElementById('sum-unanswered').innerText = unanswered;
+            document.getElementById('sum-flagged').innerText = flaggedCount;
 
-            if (unanswered === 0) {
-                msg = `您已完成所有题目！<br><span class="text-xs opacity-80">Anda telah menjawab semua soalan!</span>`;
-            }
+            const nav = document.getElementById('summary-navigator');
+            nav.innerHTML = '';
             
-            if (flaggedCount > 0) {
-                msg += `<br><br><i class="fas fa-flag text-orange-500"></i> 注意：您还有 <strong>${flaggedCount}</strong> 题被标记为存疑(🚩)。<br><span class="text-xs opacity-80">Nota: Anda ada ${flaggedCount} soalan ditandai.</span>`;
-            }
-
-            msg += `<br><br>确定要正式交卷吗？交卷后将无法修改。<br><span class="text-xs opacity-80">Pasti untuk menghantar terus? Ia tidak boleh diubah selepas dihantar.</span>`;
-
-            showModal("交卷最后确认 / Pengesahan Akhir", msg, (unanswered > 0 || flaggedCount > 0) ? 'warning' : 'info', submitQuiz, true, "确定交卷 / Hantar");
+            // 渲染大号的题目按钮矩阵
+            state.questions.forEach((_, i) => {
+                const isAnswered = state.answers[i] !== undefined && state.answers[i] !== null;
+                const isFlagged = state.flags[i];
+                
+                const btn = document.createElement('button');
+                let baseClass = "w-14 h-14 md:w-16 md:h-16 rounded-xl font-bold text-lg flex items-center justify-center transition-all focus:outline-none relative shadow-sm hover:shadow-md transform hover:-translate-y-1 ";
+                
+                if (isAnswered) baseClass += "bg-primary-600 text-white hover:bg-primary-700 border-2 border-primary-600 "; 
+                else baseClass += "bg-white text-red-500 border-2 border-red-300 hover:bg-red-50 "; // 未答题用红色边框高亮
+                
+                btn.className = baseClass;
+                btn.innerText = i + 1;
+                
+                if (isFlagged) btn.innerHTML += `<div class="absolute -top-1.5 -right-1.5 w-5 h-5 bg-orange-500 rounded-full border-[3px] border-white shadow-sm"></div>`;
+                
+                btn.onclick = () => { state.currentQIndex = i; showView('quiz'); renderQuestion(); };
+                nav.appendChild(btn);
+            });
         }
 
-        document.getElementById('btn-next-question').addEventListener('click', () => {
-            if (state.currentQIndex < state.questions.length - 1) { state.currentQIndex++; renderQuestion(); } 
-            else { showSubmitSummary(); }
+        document.getElementById('btn-back-to-quiz').addEventListener('click', () => {
+            showView('quiz'); renderQuestion();
         });
 
-        document.getElementById('btn-prev-question').addEventListener('click', () => {
-            if (state.currentQIndex > 0) { state.currentQIndex--; renderQuestion(); }
+        document.getElementById('btn-final-submit').addEventListener('click', () => {
+            showModal("交卷最后确认 / Pengesahan Akhir", "您确定要正式交卷吗？交卷后将无法修改。<br><span class='text-sm opacity-80'>Pasti untuk menghantar terus? Ia tidak boleh diubah selepas dihantar.</span>", "warning", submitQuiz, true, "确定交卷 / Hantar");
         });
 
         async function submitQuiz() {
